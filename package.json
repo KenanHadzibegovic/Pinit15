@@ -1,0 +1,8 @@
+{
+  "name": "pinit-server",
+  "version": "1.0.0",
+  "description": "PINIT — prijave gradjana + Drive mjerenja + komandni centar",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
