@@ -1,0 +1,17 @@
+{
+  "name": "PINIT — Prijavi problem",
+  "short_name": "PINIT",
+  "description": "Prijavi komunalni problem za 5 sekundi i mjeri stanje cesta dok voziš.",
+  "lang": "bs",
+  "start_url": "/?src=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1c7a35",
+  "theme_color": "#1c7a35",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

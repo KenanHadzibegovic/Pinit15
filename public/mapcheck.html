@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>PINIT — provjera karte</title>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+  html,body{margin:0;height:100%;font-family:system-ui,-apple-system,sans-serif;}
+  #map{position:fixed;inset:0;}
+  .panel{position:fixed;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top));z-index:5;
+    background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-radius:14px;padding:10px 12px;
+    box-shadow:0 2px 10px rgba(0,0,0,.15);font-size:13px;color:#1c1c1e;}
+  .panel b{color:#1c7a35}
+  .btns{position:fixed;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:5;display:flex;gap:8px;}
+  .btns button{flex:1;padding:13px;border:none;border-radius:12px;background:#1c7a35;color:#fff;font-size:14px;font-weight:700;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+  .btns button.sec{background:#fff;color:#1c7a35;border:1px solid #d0e6d5;}
+  #status{margin-top:4px;font-size:11.5px;color:#666;}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="panel">
+  <b>PINIT — provjera karte.</b> Ako vidiš ulice Tešnja i pinove, karta radi. Tapni „Moja lokacija" da provjeriš GPS.
+  <div id="status">Učitavanje…</div>
+</div>
+<div class="btns">
+  <button class="sec" onclick="location.reload()">Osvježi</button>
+  <button onclick="PINIT_MAPS.locate(true)">Moja lokacija</button>
+</div>
+<script src="/maps.js"></script>
+<script>
+  var st = document.getElementById('status');
+  try {
+    var m = PINIT_MAPS.init('map');
+    if (!m) { st.textContent = 'Greška: MapLibre nije učitan.'; }
+    else {
+      st.textContent = 'Karta: ' + (PINIT_MAPS.usingMapTiler() ? 'MapTiler (vektorska)' : 'OpenStreetMap (besplatno, bez ključa)');
+      m.on('load', function () {
+        // primjeri prijava oko Tešnja (samo za test prikaza)
+        PINIT_MAPS.addReport({ lat: 44.6112, lng: 17.9860, cat: 'putevi', note: 'test rupa' });
+        PINIT_MAPS.addReport({ lat: 44.6075, lng: 17.9925, cat: 'voda', note: 'test curenje' });
+        PINIT_MAPS.addReport({ lat: 44.6060, lng: 17.9840, cat: 'rasvjeta', status: 3, note: 'riješeno' });
+        PINIT_MAPS.addHotspot({ lat: 44.6098, lng: 17.9890, cat: 'putevi', count: 3 });
+      });
+      m.on('error', function (e) { st.textContent = 'Greška karte: ' + (e && e.error ? e.error.message : 'nepoznato'); });
+    }
+  } catch (e) { st.textContent = 'Greška: ' + e.message; }
+</script>
+</body>
+</html>

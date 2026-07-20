@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PINIT Drive — Komandni centar</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="/maps.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F2F7;--surface:#FFFFFF;--surface-2:#F2F2F7;
+  --line:#E5E5EA;--line-2:#EFEFF4;
+  --pinit:#1a7a34;--pinit-d:#0f4f21;--pinit-soft:#e8f5ec;
+  --amber:#FF9500;--amber-soft:#FFF4E5;
+  --red:#FF3B30;--red-soft:#FFECEB;
+  --blue:#007AFF;--blue-soft:#E8F1FF;
+  --ink:#1C1C1E;--ink-2:#3C3C43;--ink-3:#8E8E93;
+  --shadow:0 1px 3px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.05);
+  --shadow-lg:0 10px 40px rgba(0,0,0,.10);
+  --fn:'Inter',-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',Roboto,sans-serif;
+  --r:20px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--fn);background:var(--bg);
+  color:var(--ink);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;letter-spacing:-.01em;}
+button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer;}
+.wrap{max-width:1180px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:16px;}
+
+/* header */
+.topbar{background:#FFFFFF;border:none;border-radius:22px;box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;padding:14px 18px;flex-wrap:wrap;}
+.mark{width:42px;height:42px;border-radius:13px;background:linear-gradient(160deg,#22A848,#0f4f21);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(26,122,52,.35);}
+.mark svg{width:24px;height:24px;fill:#fff;}
+.title{font-size:18px;font-weight:700;letter-spacing:-.03em;}
+.title span{color:var(--pinit);}
+.title small{display:block;font-size:11.5px;font-weight:500;color:var(--ink-3);margin-top:1px;letter-spacing:-.01em;}
+.sp{flex:1;}
+.sel{background:var(--surface-2);border:none;border-radius:11px;padding:9px 13px;font-size:13px;font-weight:600;color:var(--ink-2);outline:none;-webkit-appearance:none;appearance:none;}
+.btn{display:inline-flex;align-items:center;gap:7px;border-radius:12px;padding:10px 15px;font-size:13px;font-weight:600;transition:all .15s;}
+.btn svg{width:16px;height:16px;fill:currentColor;}
+.btn.primary{background:var(--pinit);color:#fff;box-shadow:0 4px 12px rgba(26,122,52,.25);}
+.btn.primary:hover{background:var(--pinit-d);}
+.btn.ghost{background:var(--surface-2);color:var(--ink-2);}
+.btn.ghost:hover{background:var(--line);}
+
+.lead{font-size:13.5px;color:var(--ink-2);line-height:1.55;max-width:820px;}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+@media(max-width:880px){.kpis{grid-template-columns:repeat(2,1fr);}}
+.kpi{background:var(--surface);border:none;border-radius:18px;padding:16px 17px;box-shadow:var(--shadow);}
+.kpi-l{font-size:12px;font-weight:600;color:var(--ink-3);letter-spacing:-.01em;}
+.kpi-v{font-size:28px;font-weight:700;letter-spacing:-.04em;line-height:1;margin-top:10px;font-variant-numeric:tabular-nums;}
+.kpi-v small{font-size:13px;color:var(--ink-3);font-weight:600;}
+.kpi-s{font-size:11.5px;font-weight:600;margin-top:8px;color:var(--ink-3);}
+.kpi-s.up{color:var(--pinit);}.kpi-s.down{color:var(--red);}
+
+/* layout */
+.grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;align-items:start;}
+@media(max-width:880px){.grid{grid-template-columns:1fr;}}
+.card{background:var(--surface);border:none;border-radius:var(--r);box-shadow:var(--shadow);padding:20px 22px;}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;}
+.card-t{font-size:16px;font-weight:700;letter-spacing:-.03em;}
+.badge{font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;background:var(--surface-2);color:var(--ink-2);}
+
+/* map */
+.mapwrap{position:relative;border-radius:16px;overflow:hidden;background:#E9E9EE;border:none;}
+#cityMap{display:block;width:100%;}
+.maplegend{display:flex;gap:16px;margin-top:12px;font-size:11.5px;font-weight:500;color:var(--ink-3);flex-wrap:wrap;}
+.maplegend i{width:14px;height:5px;border-radius:3px;display:inline-block;vertical-align:1px;margin-right:6px;}
+.maplegend i.dot{width:9px;height:9px;border-radius:50%;}
+.tip{position:absolute;pointer-events:none;background:rgba(28,28,30,.92);backdrop-filter:blur(10px);color:#fff;font-size:11.5px;font-weight:600;border-radius:11px;padding:8px 12px;opacity:0;transition:opacity .12s;white-space:nowrap;z-index:5;transform:translate(-50%,-130%);}
+.tip.on{opacity:1;}
+.tip b{font-weight:700;}
+
+/* table */
+.tbl{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{font-size:11px;font-weight:600;color:var(--ink-3);text-align:left;padding:10px 9px;border-bottom:.5px solid var(--line);white-space:nowrap;letter-spacing:-.01em;}
+td{font-size:13.5px;padding:12px 9px;border-bottom:.5px solid var(--line-2);}
+tr:last-child td{border-bottom:none;}
+tr.sel-row{background:var(--pinit-soft);}
+.rci{font-weight:700;font-size:14px;}
+.bar{width:64px;height:6px;border-radius:3px;background:var(--surface-2);display:inline-block;vertical-align:middle;overflow:hidden;}
+.bar i{display:block;height:100%;border-radius:3px;}
+.tag{font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;white-space:nowrap;}
+.tag.l{background:var(--pinit-soft);color:var(--pinit-d);}
+.tag.m{background:var(--amber-soft);color:#9a5b00;}
+.tag.h{background:var(--red-soft);color:#c8261d;}
+.trend{font-weight:700;font-size:12px;font-variant-numeric:tabular-nums;}
+.mini{font-size:12px;font-weight:600;padding:7px 13px;border-radius:10px;background:var(--surface-2);color:var(--ink-2);transition:all .12s;}
+.mini:hover{background:var(--pinit);color:#fff;}
+.conf{display:inline-flex;gap:2px;vertical-align:middle;}
+.conf b{width:5px;height:12px;border-radius:1px;background:var(--line);}
+.conf b.on{background:var(--pinit);}
+
+.chartbox{position:relative;height:230px;}
+.fleet{display:flex;flex-direction:column;gap:12px;}
+.veh{display:flex;align-items:center;gap:12px;}
+.veh-ic{width:38px;height:38px;border-radius:11px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.veh-n{font-size:13px;font-weight:600;}
+.veh-m{font-size:11px;color:var(--ink-3);}
+.veh-bar{flex:1;height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;min-width:50px;}
+.veh-bar i{display:block;height:100%;background:var(--pinit);border-radius:4px;}
+.veh-km{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;min-width:54px;text-align:right;}
+
+.note{display:flex;gap:11px;background:var(--blue-soft);border:none;border-radius:16px;padding:15px 17px;}
+.note svg{width:18px;height:18px;fill:var(--blue);flex-shrink:0;margin-top:1px;}
+.note-t{font-size:13px;font-weight:700;margin-bottom:2px;}
+.note-b{font-size:12.5px;color:var(--ink-2);line-height:1.5;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:rgba(28,28,30,.92);backdrop-filter:blur(10px);color:#fff;font-size:13px;font-weight:600;border-radius:14px;padding:13px 20px;box-shadow:var(--shadow-lg);transition:transform .3s cubic-bezier(.2,.8,.3,1);z-index:100;}
+.toast.on{transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="mark"><span style="color:#fff;font-weight:800;font-size:22px;letter-spacing:-1px;">P</span></div>
+    <div class="title">PINIT <span>Drive</span> · Komandni centar<small>Stanje gradske mreže iz pasivnih vožnji flote</small></div>
+    <div class="sp"></div>
+    <div id="srcToggle" style="display:none;background:var(--surface-2);border-radius:11px;padding:3px;gap:2px;">
+      <button id="tgDemo" onclick="setSource(false)" style="border:none;border-radius:9px;padding:7px 13px;font-size:12.5px;font-weight:600;font-family:var(--fn);cursor:pointer;background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06);">Demo</button>
+      <button id="tgReal" onclick="setSource(true)" style="border:none;border-radius:9px;padding:7px 13px;font-size:12.5px;font-weight:600;font-family:var(--fn);cursor:pointer;background:transparent;color:var(--ink-3);">Moji podaci</button>
+    </div>
+    <select class="sel" id="period" onchange="render()">
+      <option value="30">Zadnjih 30 dana</option>
+      <option value="7">Zadnjih 7 dana</option>
+      <option value="90">Zadnjih 90 dana</option>
+    </select>
+    <button class="btn primary" onclick="document.getElementById('driveFile').click()"><svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>Učitaj vožnju</button>
+    <input type="file" id="driveFile" accept=".geojson,.json,.csv" multiple style="display:none" onchange="importDrives(this.files)">
+    <button class="btn ghost" onclick="exportReport()"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>Izvještaj</button>
+  </div>
+
+  <div class="lead">Svako vozilo s PINIT Drive aplikacijom usput mjeri stanje kolovoza — bez namjenskog obilaska i bez ijednog dodatnog radnika. Komandni centar spaja sve vožnje u jedinstvenu mapu: gdje mreža propada, koliko je hitno (IRI standard), koliko košta sanacija i kako se trend kreće kroz vrijeme.</div>
+
+  <div class="card" style="display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,#e8f5ec,#F2F2F7);">
+    <div style="width:52px;height:52px;border-radius:15px;background:var(--pinit);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(26,122,52,.3);"><svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:#fff;"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg></div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:16px;font-weight:700;letter-spacing:-.02em;">Ubaci mjerenja (vožnje)</div>
+      <div style="font-size:12.5px;color:var(--ink-2);margin-top:2px;">Učitaj GeoJSON ili CSV iz PINIT Drive aplikacije. Radi sa i bez GPS-a. Analiza se pojavi odmah ispod.</div>
+    </div>
+    <button class="btn primary" style="padding:13px 20px;font-size:14px;flex-shrink:0;" onclick="document.getElementById('driveFile').click()">Odaberi fajl</button>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-h"><div class="card-t">Mapa stanja mreže</div><div class="badge" id="mapBadge">—</div></div>
+      <div class="mapwrap" style="height:360px"><div id="nmap" style="position:absolute;inset:0;z-index:0"></div><canvas id="cityMap" style="display:none"></canvas><div class="tip" id="tip"></div></div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:10px 2px 0;font-size:11.5px;color:var(--ink-3);font-weight:600;">
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:4px;border-radius:2px;background:#1a7a34"></span>Dobro (IRI &lt; 4)</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:4px;border-radius:2px;background:#E8920C"></span>Osrednje (4–6)</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:4px;border-radius:2px;background:#E5484D"></span>Loše (&gt; 6) — za sanaciju</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#1A1D21;border:1.5px solid #fff;box-shadow:0 0 0 1px #ccc"></span>Udar / rupa</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:4px;border-radius:2px;background:#B8BCC2"></span>Sporo (&lt; 20 km/h) — nije ocjena</span>
+      </div>
+      <div class="maplegend">
+        <span><i style="background:#1a7a34"></i>dobro (IRI &lt; 4)</span>
+        <span><i style="background:#E8920C"></i>osrednje (4–6)</span>
+        <span><i style="background:#E5484D"></i>loše (IRI &gt; 6)</span>
+        <span><i class="dot" style="background:#1A1D21"></i>udar / oznaka</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div class="card-h"><div class="card-t">Trend prosječnog IRI</div></div>
+        <div class="chartbox" style="height:170px"><canvas id="trendChart"></canvas></div>
+        <div style="font-size:11.5px;color:var(--ink-3);margin-top:8px">Niži IRI = bolji put. Linija koja raste = mreža propada.</div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div class="card-t">Doprinos flote</div><div class="badge">auto-prikupljanje</div></div>
+        <div class="fleet" id="fleet"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><div class="card-t">Prioritetne dionice za sanaciju</div><div class="badge" id="prioBadge">—</div></div>
+    <div class="tbl"><table><thead><tr>
+      <th>Ulica</th><th>Dužina</th><th>Pouzdanost</th><th>Glatkoća</th><th>IRI (m/km)</th><th>Preost. vijek</th><th>Stanje</th><th>Trend</th><th style="text-align:right">Procj. trošak</th><th></th>
+    </tr></thead><tbody id="prioBody"></tbody></table></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:11.5px;color:var(--ink-3);line-height:1.5">
+      <span class="conf"><b class="on"></b><b class="on"></b><b class="on"></b><b class="on"></b><b class="on"></b></span>
+      <span><b>Pouzdanost</b> = broj prolazaka istom dionicom. 1× = orijentaciono (jedna vožnja), 5+× = potvrđeno stanje.
+      Telefonsko mjerenje je Klasa 3/IQL-3 (±20–30%); više prolazaka spušta grešku — dionicu s malo prolazaka provjeriti prije skupljih radova.</span>
+    </div>
+  </div>
+
+  <!-- ═══ PLANSKO-BUDŽETSKI MODUL ═══ -->
+  <div class="grid">
+    <div class="card">
+      <div class="card-h"><div class="card-t">Predviđanje propadanja</div><div class="badge" id="predBadge">model</div></div>
+      <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:12px">Iz trenutnog IRI i izmjerene stope propadanja projektujemo kad dionica pada ispod kritičnog praga (IRI 6). Crvena zona = hitno.</div>
+      <div class="chartbox" style="height:210px"><canvas id="predChart"></canvas></div>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:7px" id="predList"></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="card-t">Budžetski planer</div><div class="badge">optimizacija</div></div>
+      <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:14px">Koliko imam ovog kvartala? Planer bira dionice za <b>najveći učinak po marki</b> (prioritet: najgore + najprometnije).</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <input type="range" id="budget" min="2000" max="40000" step="1000" value="15000" oninput="planBudget()" style="flex:1;accent-color:var(--pinit)">
+        <div style="font-weight:700;font-size:17px;font-variant-numeric:tabular-nums;min-width:96px;text-align:right" id="budgetVal">15.000 KM</div>
+      </div>
+      <div id="budgetOut" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="card" id="deferCard">
+    <div class="card-h"><div class="card-t">Trošak odgađanja — zašto sad, a ne za 6 mjeseci</div><div class="badge" style="background:var(--red-soft);color:#b3261e">finansijski rizik</div></div>
+    <div class="tbl"><table><thead><tr><th>Ulica</th><th>IRI sad</th><th>Trošak sad</th><th>IRI za 6 mj</th><th>Trošak za 6 mj</th><th>Razlika</th><th>Pojašnjenje</th></tr></thead><tbody id="deferBody"></tbody></table></div>
+    <div style="font-size:11.5px;color:var(--ink-3);margin-top:10px">Propadanje nije linearno — što je kolovoz gori, brže se kvari, pa cijena sanacije naglo raste. Krpljenje pukotine danas košta dio sanacije rupe za pola godine.</div>
+  </div>
+
+  <!-- ═══ HEATMAPA UDARA ═══ -->
+  <div class="grid">
+    <div class="card">
+      <div class="card-h"><div class="card-t">Heatmapa udara — crne tačke grada</div><div class="badge" id="hotBadge" style="background:var(--red-soft);color:#b3261e">—</div></div>
+      <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:12px">Gdje god se udari <b>gomilaju na istom mjestu</b> kroz više vožnji, to nije slučajnost — vjerovatno loš šaht, propala krpa ili opasna tačka. Heatmapa ih izdvaja neovisno o tome kojoj ulici pripadaju.</div>
+      <div class="mapwrap" style="background:#E9E9EE"><canvas id="heatMap"></canvas><div class="tip" id="hotTip"></div></div>
+      <div class="maplegend">
+        <span><i class="dot" style="background:#FFD23F"></i>1–2 udara</span>
+        <span><i class="dot" style="background:#E8920C"></i>3–5</span>
+        <span><i class="dot" style="background:#E5484D"></i>6+ (žarište)</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="card-t">Žarišta — prioritet pregleda</div><div class="badge">klaster</div></div>
+      <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:12px">Tačke gdje je više vozila osjetilo udar — sortirano po broju i jačini. Vrh liste pregledati prvi.</div>
+      <div id="hotList" style="display:flex;flex-direction:column;gap:9px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ PRIJE / POSLIJE SANACIJE ═══ -->
+  <div class="card">
+    <div class="card-h"><div class="card-t">Prije / poslije sanacije — dokaz rezultata</div>
+      <select class="sel" id="rehabSel" onchange="drawRehab()"></select>
+    </div>
+    <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:14px">Ista dionica izmjerena prije i poslije radova. Pad IRI je tvrd dokaz da je novac dobro potrošen — broj koji grad pokazuje vijeću, medijima i građanima.</div>
+    <div class="grid" style="grid-template-columns:1fr 1.3fr">
+      <div style="display:flex;flex-direction:column;gap:12px" id="rehabStats"></div>
+      <div class="card" style="box-shadow:none;border-color:var(--line-2);background:var(--surface-2)">
+        <div class="card-t" style="font-size:13px;margin-bottom:10px">IRI prije i poslije, po segmentu</div>
+        <div class="chartbox" style="height:200px"><canvas id="rehabChart"></canvas></div>
+      </div>
+    </div>
+    <div class="note green" style="margin-top:14px;background:var(--pinit-soft);border-color:rgba(26,122,52,.2)">
+      <svg viewBox="0 0 24 24" style="fill:var(--pinit)"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+      <div><div class="note-t" id="rehabVerdict">—</div><div class="note-b" id="rehabNote">—</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ SEZONSKI OBRAZAC + BENCHMARK ═══ -->
+  <div class="grid">
+    <div class="card">
+      <div class="card-h"><div class="card-t">Sezonski obrazac propadanja</div><div class="badge">12 mjeseci</div></div>
+      <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:12px">Prosječni IRI mreže kroz godinu. Mraz i ciklusi smrzavanja/odmrzavanja zimi najviše uništavaju asfalt — vidi se skok poslije zime.</div>
+      <div class="chartbox" style="height:200px"><canvas id="seasonChart"></canvas></div>
+      <div id="seasonNote" style="font-size:12px;color:var(--ink-2);margin-top:10px;font-weight:500"></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="card-t">Benchmark — vaš grad vs region</div><div class="badge">poređenje</div></div>
+      <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:12px">Prosječno stanje mreže po gradovima u mreži. Objektivan podatak za pregovore o budžetu i kandidaturu za fondove.</div>
+      <div id="benchList" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ GRAĐANSKI DOPRINOS + MRAZ ═══ -->
+  <div class="grid">
+    <div class="card">
+      <div class="card-h"><div class="card-t">Građanski doprinos</div><div class="badge">mreža raste sama</div></div>
+      <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:14px">Kad i građani voze s aplikacijom, pokrivenost raste bez ijednog radnika. Za doprinos skupljaju <b>bodove</b> koje grad nagrađuje (popust na komunalije, parking, javni prevoz).</div>
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <div style="flex:1;background:var(--surface-2);border-radius:12px;padding:11px 13px"><div style="font-size:11px;color:var(--ink-3);font-weight:600">Pokrivenost</div><div style="font-size:22px;font-weight:700"><span id="citCov">0</span><small style="font-size:12px;color:var(--ink-3)">% mreže</small></div></div>
+        <div style="flex:1;background:var(--pinit-soft);border-radius:12px;padding:11px 13px"><div style="font-size:11px;color:var(--pinit-d);font-weight:600">Aktivni vozači</div><div style="font-size:22px;font-weight:700;color:var(--pinit-d)" id="citDrivers">0</div></div>
+        <div style="flex:1;background:var(--surface-2);border-radius:12px;padding:11px 13px"><div style="font-size:11px;color:var(--ink-3);font-weight:600">Km mjesečno</div><div style="font-size:22px;font-weight:700" id="citKm">0</div></div>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--ink-3);margin-bottom:8px">RANG-LISTA DOPRINOSA</div>
+      <div id="citBoard" style="display:flex;flex-direction:column;gap:7px"></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="card-t">Uticaj mraza na propadanje</div><div class="badge">meteo veza</div></div>
+      <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:12px">Ciklusi smrzavanja/odmrzavanja su glavni uzrok zimskog propadanja: voda uđe u pukotinu, smrzne se i raširi je. Graf spaja broj takvih dana s mjesečnim porastom IRI.</div>
+      <div class="chartbox" style="height:200px"><canvas id="frostChart"></canvas></div>
+      <div id="frostNote" style="font-size:12px;color:var(--ink-2);margin-top:10px;font-weight:500"></div>
+    </div>
+  </div>
+
+  <!-- ═══ ANALIZA UČITANE VOŽNJE ═══ -->
+  <div id="analysis" style="display:none;flex-direction:column;gap:16px">
+    <div class="card" style="border-color:var(--pinit);background:linear-gradient(180deg,#fff,#f4faf6)">
+      <div class="card-h"><div class="card-t">Analiza učitanih vožnji</div><div class="badge" id="anBadge">—</div></div>
+      <div class="kpis" id="anKpis" style="grid-template-columns:repeat(5,1fr)"></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-h"><div class="card-t">Profil rute — IRI po dionici</div><div class="badge">stvarni podaci</div></div>
+        <div class="chartbox"><canvas id="profChart"></canvas></div>
+        <div style="font-size:11.5px;color:var(--ink-3);margin-top:8px">Svaka tačka = 100 m segment. Crveni vrhovi = najgore dionice (anomalije).</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card"><div class="card-h"><div class="card-t">Raspodjela stanja</div></div>
+          <div class="chartbox" style="height:170px"><canvas id="distChart"></canvas></div>
+        </div>
+        <div class="card"><div class="card-h"><div class="card-t">GPS trag</div></div>
+          <div class="mapwrap" style="background:#E9E9EE"><canvas id="gpsMap"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PROFESIONALNA STATISTIKA (PMS standard) ═══ -->
+    <div class="grid">
+      <div class="card">
+        <div class="card-h"><div class="card-t">Stanje mreže — PMS standard</div><div class="badge">PCI procjena</div></div>
+        <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:12px">Gradovi u svijetu mrežu prate kroz <b>distribuciju stanja po dužini</b>, ne samo prosjek — prosjek maskira loše dionice. Kategorije po PCI standardu (procjena iz IRI):</div>
+        <div id="netDist" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div id="netPctl" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div class="card-t">Backlog i budžet — FHWA pravilo</div><div class="badge" style="background:var(--red-soft);color:#c8261d">finansije</div></div>
+        <div id="backlogBox" style="display:flex;flex-direction:column;gap:12px"></div>
+      </div>
+    </div>
+
+    <div class="card" id="clsCard" style="display:none">
+      <div class="card-h"><div class="card-t">Šta su udari — frekvencijska klasifikacija</div><div class="badge">nauka ovjesa</div></div>
+      <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:12px">Aplikacija svaki udar analizira po frekvenciji i obliku: <b>rupa</b> (točak propadne pa skoči, 8–16 Hz), <b>šaht/ivica</b> (vrlo kratak visok impuls), <b>prag/prelaz</b> (skok-prvo, niže frekvencije — po pravilu ne treba popravku), <b>ulegnuće</b> (karoserija se ljulja, 1–4 Hz). Pragovi se automatski izdvajaju da ne troše budžet.</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+        <div class="chartbox" style="height:180px;flex:0 0 220px"><canvas id="clsChart"></canvas></div>
+        <div id="clsList" style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:7px"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><div class="card-t">⚠ Najveća odstupanja (anomalije)</div><div class="badge" id="anomBadge" style="background:var(--red-soft);color:#b3261e">—</div></div>
+      <div class="tbl"><table><thead><tr><th>#</th><th>Tip</th><th>Lokacija (GPS)</th><th>Vrijeme</th><th>Vrijednost</th><th>Ocjena</th></tr></thead><tbody id="anomBody"></tbody></table></div>
+      <div style="font-size:11.5px;color:var(--ink-3);margin-top:10px">Anomalija = segment s IRI iznad 1,5× prosjeka ili udar jači od praga. Ovo su mjesta koja prvo treba pogledati.</div>
+    </div>
+  </div>
+
+  <div class="note"><svg viewBox="0 0 24 24"><path d="M12 2L2 7v7c0 5 3.4 9.7 10 11 6.6-1.3 10-6 10-11V7L12 2zm-1 14l-4-4 1.4-1.4L11 13.2l5.6-5.6L18 9l-7 7z"/></svg>
+    <div><div class="note-t">Veza s PINIT platformom</div><div class="note-b">Dionice s lošim stanjem jednim klikom postaju radni nalozi u <b>dispečeru</b> i ulaze u <b>registar pravnog rizika</b> s datumom saznanja. Time grad dokazuje da je za stanje znao i postupio prije nego što oštećenje izazove štetu i odštetni zahtjev.</div></div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ═══════════ SINTETIČKI PODACI FLOTE (demo) ═══════════
+   U produkciji ovo dolazi iz agregacije stvarnih vožnji (GeoJSON iz aplikacije). */
+const VEHICLES=[
+  {id:'SA-214',name:'Čistoća — kamion',km:142},
+  {id:'GRAS-31',name:'GRAS — autobus 31',km:98},
+  {id:'OPC-07',name:'Općina — vozilo',km:54},
+  {id:'VIK-03',name:'Vodovod — servis',km:37},
+];
+// ulice: q=glatkoća, prolazaka (pouzdanost), trend (promjena IRI vs prošli period), udari
+const STREETS=[
+  {n:'Alipašina',len:0.9,q:42,passes:14,dIRI:+0.8,bumps:9},
+  {n:'Bulevar Meše Selimovića',len:1.6,q:55,passes:22,dIRI:+0.5,bumps:6},
+  {n:'Zmaj od Bosne',len:1.2,q:61,passes:18,dIRI:-0.2,bumps:5},
+  {n:'Hamdije Čemerlića',len:0.7,q:38,passes:8,dIRI:+1.1,bumps:7},
+  {n:'Kolodvorska',len:0.6,q:48,passes:6,dIRI:+0.4,bumps:4},
+  {n:'Džemala Bijedića',len:2.1,q:64,passes:19,dIRI:0,bumps:8},
+  {n:'Obala Kulina bana',len:1.0,q:72,passes:11,dIRI:-0.3,bumps:2},
+  {n:'Maršala Tita',len:0.8,q:80,passes:9,dIRI:-0.1,bumps:1},
+  {n:'Vilsonovo šetalište',len:0.9,q:69,passes:7,dIRI:+0.2,bumps:3},
+  {n:'Put života',len:1.3,q:35,passes:5,dIRI:+1.4,bumps:11},
+];
+const $=id=>document.getElementById(id);
+const iriEst=q=>+((100-q)*0.12).toFixed(1);
+const fmtKM=n=>n.toLocaleString('bs');
+function cond(q){const i=iriEst(q);return i>6?'h':i>4?'m':'l';}
+function color(q){const i=iriEst(q);return i>6?'#E5484D':i>4?'#E8920C':'#1a7a34';}
+function costOf(s){ // gore stanje + više udara + duže = skuplje
+  const sev=(100-s.q)/100; return Math.round((s.len*1000*0.9 + s.bumps*140) * (0.6+sev));
+}
+let SEL=null, trendC=null, predC=null;
+let USE_REAL=false;   // false = demo, true = moji učitani podaci
+
+/* iz učitanih vožnji (DRIVES) napravi "dionice" kao demo STREETS,
+   da sve sekcije mogu raditi na stvarnim podacima */
+function realStreets(){
+  const segs=usableSegs();          // bez dionica snimljenih ispod 20 km/h
+  if(!segs.length)return [];
+  const withGps=segs.filter(s=>s.lat&&s.lng);
+  const out=[];
+  if(withGps.length){
+    // grupiši segmente u ~120 m dionice po lokaciji
+    const R=0.0011;
+    withGps.forEach(s=>{
+      let c=out.find(c=>Math.abs(c._lat-s.lat)<R&&Math.abs(c._lng-s.lng)<R);
+      if(c){c._qs.push(s.q);c.passes++;c._lat=(c._lat*(c.passes-1)+s.lat)/c.passes;c._lng=(c._lng*(c.passes-1)+s.lng)/c.passes;}
+      else out.push({_lat:s.lat,_lng:s.lng,_qs:[s.q],passes:1});
+    });
+  }else{
+    // bez GPS-a: grupiši po vožnji (svaka vožnja = jedna "dionica")
+    DRIVES.forEach((d,i)=>{
+      if(!d.segments.length)return;
+      out.push({_qs:d.segments.map(s=>s.q),passes:d.segments.length,_nogps:true,_i:i});
+    });
+  }
+  // pretvori u oblik kao STREETS
+  const bumps=DRIVES.flatMap(d=>d.bumps);
+  return out.map((c,idx)=>{
+    const q=Math.round(c._qs.reduce((a,b)=>a+b,0)/c._qs.length);
+    const len=+(c.passes*0.1).toFixed(1)||0.1; // 100 m po segmentu
+    // udari u blizini ove dionice (samo ako ima GPS)
+    let bn=0;
+    if(c._lat){const R=0.0011;bn=bumps.filter(b=>b.lat&&Math.abs(b.lat-c._lat)<R&&Math.abs(b.lng-c._lng)<R).length;}
+    const name=c._nogps?('Vožnja '+(c._i+1)):('Dionica '+(idx+1)+' ('+c._lat.toFixed(4)+', '+c._lng.toFixed(4)+')');
+    return {n:name,len,q,passes:c.passes,dIRI:0,bumps:bn,_lat:c._lat,_lng:c._lng};
+  }).sort((a,b)=>a.q-b.q);
+}
+function realFleet(){
+  // jedna stavka po vožnji (nemamo podatke o vozilu)
+  return DRIVES.map((d,i)=>({id:'#'+(i+1),name:'Vožnja '+(i+1)+(d.gps?'':' (bez GPS)'),emoji:'',km:+(d.km||0).toFixed(1)}));
+}
+// aktivni izvor podataka
+function srcStreets(){return USE_REAL?realStreets():STREETS;}
+function srcVehicles(){return USE_REAL?realFleet():VEHICLES;}
+/* sekcije koje traže podatke kroz vrijeme — označi ih kad gledamo svoje podatke */
+const TIME_SECTIONS=['Predviđanje propadanja','Budžetski planer','Trošak odgađanja','Prije / poslije sanacije','Sezonski obrazac','Benchmark','Uticaj mraza'];
+function markDemoSections(){
+  document.querySelectorAll('.card-h .card-t').forEach(t=>{
+    const isTime=TIME_SECTIONS.some(x=>t.textContent.indexOf(x)>-1);
+    let tag=t.parentElement.querySelector('.demo-tag');
+    if(USE_REAL&&isTime){
+      if(!tag){tag=document.createElement('span');tag.className='demo-tag badge';tag.style.cssText='background:var(--amber-soft);color:#9a5b00;';tag.textContent='primjer · treba više mjerenja';t.parentElement.appendChild(tag);}
+    }else if(tag)tag.remove();
+  });
+}
+function setSource(real){
+  USE_REAL=real;
+  const d=$('tgDemo'),r=$('tgReal');
+  if(real){r.style.background='#fff';r.style.color='var(--ink)';r.style.boxShadow='0 1px 2px rgba(0,0,0,.06)';d.style.background='transparent';d.style.color='var(--ink-3)';d.style.boxShadow='none';}
+  else{d.style.background='#fff';d.style.color='var(--ink)';d.style.boxShadow='0 1px 2px rgba(0,0,0,.06)';r.style.background='transparent';r.style.color='var(--ink-3)';r.style.boxShadow='none';}
+  SEL=null;render();
+}
+
+/* ═══════════ KPI ═══════════ */
+function render(){
+  const days=+$('period').value;
+  const scale=days/30;
+  const ST=srcStreets(), VH=srcVehicles();
+  const realOn=USE_REAL&&ST.length;
+  const totalKm=realOn?Math.round(VH.reduce((a,v)=>a+v.km,0)):Math.round(VH.reduce((a,v)=>a+v.km,0)*scale);
+  const covered=ST.length;
+  const totLen=ST.reduce((a,s)=>a+s.len,0)||1;
+  const avgIRI=(ST.reduce((a,s)=>a+iriEst(s.q)*s.len,0)/totLen).toFixed(1);
+  const bad=ST.filter(s=>iriEst(s.q)>6).length;
+  const totalCost=ST.filter(s=>iriEst(s.q)>6).reduce((a,s)=>a+costOf(s),0);
+  const trendAvg=(ST.reduce((a,s)=>a+(s.dIRI||0),0)/ST.length).toFixed(2);
+  const coveredLbl=realOn?(ST[0]&&ST[0]._lat?'dionica (GPS)':'vožnji učitano'):'automatski, usput';
+  const kmLbl=realOn?(VH.length+' vožnji učitano'):(VH.length+' vozila, bez radnika');
+  $('kpis').innerHTML=`
+    <div class="kpi"><div class="kpi-l">${realOn?'Izmjereno':'Skenirano (flota)'}</div><div class="kpi-v">${fmtKM(totalKm)}<small> km</small></div><div class="kpi-s">${kmLbl}</div></div>
+    <div class="kpi"><div class="kpi-l">${realOn?'Dionica':'Ulica pokriveno'}</div><div class="kpi-v">${covered}</div><div class="kpi-s">${coveredLbl}</div></div>
+    <div class="kpi"><div class="kpi-l">Prosječni IRI</div><div class="kpi-v" style="color:${avgIRI>6?'var(--red)':avgIRI>4?'var(--amber)':'var(--pinit)'}">${avgIRI}<small> m/km</small></div><div class="kpi-s ${trendAvg>0?'down':'up'}">${realOn?'iz tvojih mjerenja':(trendAvg>0?'▲':'▼')+' '+Math.abs(trendAvg)+' vs prošli period'}</div></div>
+    <div class="kpi"><div class="kpi-l">Hitno za sanaciju</div><div class="kpi-v" style="color:var(--red)">${bad}</div><div class="kpi-s">dionice IRI &gt; 6</div></div>
+    <div class="kpi"><div class="kpi-l">Procj. trošak (hitno)</div><div class="kpi-v">${fmtKM(totalCost)}<small> KM</small></div><div class="kpi-s">prioritetne dionice</div></div>`;
+  $('mapBadge').textContent=covered+(realOn?' dionica':' ulica');
+  $('prioBadge').textContent=bad+' hitnih';
+  drawMap();drawTrend(days);drawFleet(scale);drawPrio();
+  if(window.netMap)drawRealNetMap();
+  drawPrediction();planBudget();drawDefer();drawHeatmap();initRehab();drawSeason();drawBench();drawCitizen();drawFrost();
+  markDemoSections();
+}
+
+/* ═══════════ MAPA (shematska gradska mreža) ═══════════ */
+const cmap=$('cityMap'),mx=cmap.getContext('2d');
+let MAPW=0,MAPH=0,MSEG=[];
+function sizeMap(){const dpr=Math.min(2,devicePixelRatio||1);const w=cmap.parentElement.clientWidth;
+  MAPW=w;MAPH=Math.round(w*0.62);cmap.width=w*dpr;cmap.height=MAPH*dpr;cmap.style.height=MAPH+'px';mx.setTransform(dpr,0,0,dpr,0,0);}
+// rasporedimo ulice kao isprepletenu mrežu (deterministički iz indexa)
+function layout(){
+  MSEG=[];const pad=26,W=MAPW-pad*2,H=MAPH-pad*2;
+  srcStreets().forEach((s,i)=>{
+    const horiz=i%2===0;
+    const t=(i*0.137+0.08)%1;
+    let x1,y1,x2,y2;
+    if(horiz){const y=pad+H*(0.12+0.76*t);x1=pad+W*(0.04+(i*0.05)%0.2);x2=pad+W*(0.6+(i*0.07)%0.36);y1=y;y2=y+ (W*0.04*Math.sin(i));}
+    else{const x=pad+W*(0.12+0.76*((t*1.7)%1));y1=pad+H*(0.06+(i*0.05)%0.2);y2=pad+H*(0.55+(i*0.07)%0.4);x1=x;x2=x+ (H*0.05*Math.cos(i));}
+    MSEG.push({s,x1,y1,x2,y2});
+  });
+}
+function drawMap(){
+  if(!MAPW)sizeMap();
+  layout();
+  mx.clearRect(0,0,MAPW,MAPH);
+  // podloga blokova
+  mx.fillStyle='#DFDFE6';
+  for(let gx=20;gx<MAPW-10;gx+=58)for(let gy=18;gy<MAPH-10;gy+=46){mx.beginPath();mx.roundRect(gx,gy,46,34,5);mx.fill();}
+  // rijeka (dekor)
+  mx.strokeStyle='#CBD9E6';mx.lineWidth=10;mx.lineCap='round';
+  mx.beginPath();mx.moveTo(0,MAPH*0.62);
+  for(let x=0;x<=MAPW;x+=MAPW/8)mx.lineTo(x,MAPH*0.62+Math.sin(x*0.02)*12);
+  mx.stroke();
+  // ulice
+  MSEG.forEach(m=>{
+    mx.strokeStyle=color(m.s.q);mx.lineWidth=m===SEL?9:6;mx.lineCap='round';
+    mx.beginPath();mx.moveTo(m.x1,m.y1);mx.lineTo(m.x2,m.y2);mx.stroke();
+    if(m===SEL){mx.strokeStyle='rgba(26,29,33,.25)';mx.lineWidth=13;mx.beginPath();mx.moveTo(m.x1,m.y1);mx.lineTo(m.x2,m.y2);mx.stroke();
+      mx.strokeStyle=color(m.s.q);mx.lineWidth=9;mx.beginPath();mx.moveTo(m.x1,m.y1);mx.lineTo(m.x2,m.y2);mx.stroke();}
+    // udari kao crne tačke duž linije
+    for(let b=0;b<Math.min(m.s.bumps,6);b++){const t=(b+1)/(Math.min(m.s.bumps,6)+1);
+      const px=m.x1+(m.x2-m.x1)*t,py=m.y1+(m.y2-m.y1)*t;
+      mx.fillStyle='#1A1D21';mx.beginPath();mx.arc(px,py,2.6,0,7);mx.fill();}
+  });
+}
+cmap.addEventListener('mousemove',e=>{
+  const r=cmap.getBoundingClientRect(),mxp=e.clientX-r.left,myp=e.clientY-r.top;
+  let hit=null,best=10;
+  for(const m of MSEG){const d=distToSeg(mxp,myp,m);if(d<best){best=d;hit=m;}}
+  const tip=$('tip');
+  if(hit){tip.innerHTML='<b>'+hit.s.n+'</b> · IRI '+iriEst(hit.s.q)+' · '+hit.s.passes+' prolazaka';
+    tip.style.left=mxp+'px';tip.style.top=myp+'px';tip.classList.add('on');}
+  else tip.classList.remove('on');
+});
+cmap.addEventListener('mouseleave',()=>$('tip').classList.remove('on'));
+cmap.addEventListener('click',e=>{
+  const r=cmap.getBoundingClientRect(),mxp=e.clientX-r.left,myp=e.clientY-r.top;
+  let hit=null,best=10;for(const m of MSEG){const d=distToSeg(mxp,myp,m);if(d<best){best=d;hit=m;}}
+  SEL=hit?hit.s:null;drawMap();drawPrio();
+});
+function distToSeg(px,py,m){const A=px-m.x1,B=py-m.y1,C=m.x2-m.x1,D=m.y2-m.y1;
+  const dot=A*C+B*D,len=C*C+D*D;let t=len?Math.max(0,Math.min(1,dot/len)):0;
+  const xx=m.x1+t*C,yy=m.y1+t*D;return Math.hypot(px-xx,py-yy);}
+
+/* ═══════════ TREND ═══════════ */
+function drawTrend(days){
+  let data,labels;
+  if(USE_REAL&&DRIVES.length){
+    // svaka vožnja = tačka (prosječni IRI te vožnje), redom kako su učitane
+    data=DRIVES.map(d=>{const s=d.segments;return s.length?+(s.reduce((a,x)=>a+x.iri,0)/s.length).toFixed(2):0;});
+    labels=DRIVES.map((_,i)=>i===DRIVES.length-1?'zadnja':'#'+(i+1));
+    if(data.length===1){data=[data[0],data[0]];labels=['#1','sad'];}
+  }else{
+    const n=days===7?7:days===90?12:8;
+    const base=5.2;data=[];
+    for(let i=0;i<n;i++)data.push(+(base - i*0.05 + Math.sin(i)*0.25 + (i>n-3?0.4:0)).toFixed(2));
+    labels=data.map((_,i)=>i===n-1?'sad':'-'+(n-1-i));
+  }
+  if(trendC)trendC.destroy();
+  trendC=new Chart($('trendChart'),{type:'line',data:{labels,datasets:[{data,borderColor:'#007AFF',backgroundColor:'rgba(0,122,255,.08)',fill:true,tension:.35,pointRadius:USE_REAL?3:0,borderWidth:2.5}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'IRI '+c.parsed.y+' m/km'}}},
+    scales:{y:{grid:{color:'#0000000a'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:10},color:'#9AA1AC'}}}}});
+}
+
+/* ═══════════ FLOTA ═══════════ */
+function drawFleet(scale){
+  const VH=srcVehicles();const realOn=USE_REAL&&VH.length;
+  const max=Math.max(...VH.map(v=>v.km),1);
+  $('fleet').innerHTML=VH.map(v=>{const km=realOn?v.km:Math.round(v.km*scale);
+    return `<div class="veh"><div class="veh-ic">${v.emoji||'<svg width=18 height=18 viewBox=\"0 0 24 24\" fill=\"#1a7a34\"><path d=\"M5 11l1.5-4.5h11L19 11M6.5 16a1.5 1.5 0 110-3 1.5 1.5 0 010 3m11 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3M5 11h14v5H5z\"/></svg>'}</div>
+      <div style="min-width:0;width:120px"><div class="veh-n">${v.name}</div><div class="veh-m">${v.id}</div></div>
+      <div class="veh-bar"><i style="width:${v.km/max*100}%"></i></div>
+      <div class="veh-km">${fmtKM(km)} km</div></div>`;}).join('');
+}
+
+/* ═══════════ PRIORITET ═══════════ */
+function drawPrio(){
+  const sorted=[...srcStreets()].sort((a,b)=>iriEst(b.q)-iriEst(a.q));
+  $('prioBody').innerHTML=sorted.map(s=>{
+    const i=iriEst(s.q),c=cond(s.q),col=color(s.q);
+    const confN=Math.min(5,Math.round(s.passes/4));
+    const conf='<span class="conf">'+[0,1,2,3,4].map(k=>'<b class="'+(k<confN?'on':'')+'"></b>').join('')+'</span>';
+    const tr=s.dIRI>0?`<span class="trend" style="color:var(--red)">▲ ${s.dIRI.toFixed(1)}</span>`:s.dIRI<0?`<span class="trend" style="color:var(--pinit)">▼ ${Math.abs(s.dIRI).toFixed(1)}</span>`:`<span class="trend" style="color:var(--ink-3)">—</span>`;
+    const rec=c==='h'?'Sanacija':c==='m'?'Krpljenje':'Praćenje';
+    const mCrit=monthsToCritical(s);
+    const rsl=mCrit>=999?'<span style="color:var(--pinit)">5+ god</span>':mCrit<=0?'<span style="color:var(--red)">isteklo</span>':mCrit<12?'<span style="color:var(--red)">'+mCrit+' mj</span>':'<span style="color:'+(mCrit<30?'var(--amber)':'var(--pinit)')+'">'+(mCrit/12).toFixed(1)+' god</span>';
+    return `<tr class="${SEL===s?'sel-row':''}">
+      <td style="font-weight:600">${s.n}</td>
+      <td>${s.len.toFixed(1)} km</td>
+      <td>${conf}<span style="font-size:11px;color:var(--ink-3);margin-left:6px">${s.passes}×</span></td>
+      <td><span class="rci" style="color:${col}">${s.q}</span> <span class="bar"><i style="width:${s.q}%;background:${col}"></i></span></td>
+      <td style="font-weight:700;color:${col}">${i}</td>
+      <td style="font-size:12px;font-weight:600">${rsl}</td>
+      <td><span class="tag ${c}">${rec}</span></td>
+      <td>${tr}</td>
+      <td style="text-align:right;font-weight:700">${fmtKM(costOf(s))} KM</td>
+      <td><button class="mini" onclick="toDispatch('${s.n.replace(/'/g,"")}')">U dispečer</button></td>
+    </tr>`;
+  }).join('');
+}
+function toDispatch(name){toast('✓ '+name+' poslano u dispečer + registar pravnog rizika');}
+function exportReport(){
+  const days=+$('period').value;
+  const _S=srcStreets(),_V=srcVehicles(); if(USE_REAL&&!_S.length){toast&&toast('Nema podataka za izvještaj');return;}
+  const avgIRI=(_S.reduce((a,s)=>a+iriEst(s.q)*s.len,0)/(_S.reduce((a,s)=>a+s.len,0)||1));
+  const totalKm=Math.round(_V.reduce((a,v)=>a+v.km,0)*(USE_REAL?1:days/30));
+  const bad=_S.filter(s=>iriEst(s.q)>6).sort((a,b)=>iriEst(b.q)-iriEst(a.q));
+  const totalCost=bad.reduce((a,s)=>a+costOf(s),0);
+  const pred=_S.map(s=>({s,m:monthsToCritical(s)})).filter(x=>x.m>0&&x.m<12).sort((a,b)=>a.m-b.m).slice(0,5);
+  const hot=hotData().filter(d=>d.n>=3);
+  const trendAvg=(_S.reduce((a,s)=>a+s.dIRI,0)/(_S.length||1));
+  const month=new Date().toLocaleDateString('bs',{month:'long',year:'numeric'});
+  const today=new Date().toLocaleDateString('bs',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const W=window.open('','_blank');
+  if(!W){toast('Dozvoli skočni prozor da bi se izvještaj otvorio');return;}
+  const row=(a,b,c,d)=>`<tr><td>${a}</td><td>${b}</td><td style="text-align:center">${c}</td><td style="text-align:right">${d}</td></tr>`;
+  W.document.write(`<!DOCTYPE html><html lang="bs"><head><meta charset="utf-8"><title>PINIT Drive — mjesečni izvještaj ${month}</title>
+  <style>
+    @page{margin:18mm}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1A1D21;font-size:12.5px;line-height:1.5;padding:24px;max-width:800px;margin:0 auto}
+    .hd{display:flex;align-items:center;gap:12px;border-bottom:3px solid #1a7a34;padding-bottom:14px;margin-bottom:6px}
+    .logo{width:38px;height:38px;border-radius:9px;background:#1a7a34;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px}
+    h1{font-size:20px;letter-spacing:-.02em}
+    .sub{color:#5A616B;font-size:12px}
+    h2{font-size:14px;margin:22px 0 9px;color:#0f4f21;border-left:3px solid #1a7a34;padding-left:9px}
+    .kpis{display:flex;gap:10px;margin-top:16px}
+    .k{flex:1;border:1px solid #E4E7EC;border-radius:10px;padding:11px}
+    .k b{display:block;font-size:22px;letter-spacing:-.03em}
+    .k span{font-size:10.5px;color:#8A9097;text-transform:uppercase;letter-spacing:.4px}
+    table{width:100%;border-collapse:collapse;margin-top:6px}
+    th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#8A9097;border-bottom:1.5px solid #E4E7EC;padding:7px 6px}
+    td{padding:7px 6px;border-bottom:1px solid #F0F2F5;font-size:12px}
+    .tag{font-weight:700;font-size:10.5px;padding:2px 8px;border-radius:6px}
+    .h{background:#FDECEC;color:#b3261e}.m{background:#FDF2E0;color:#8a6a00}.l{background:#E8F5ED;color:#0f4f21}
+    .note{background:#F6F7F9;border-radius:10px;padding:12px 14px;font-size:11.5px;color:#5A616B;margin-top:8px}
+    .foot{margin-top:26px;border-top:1px solid #E4E7EC;padding-top:12px;font-size:10.5px;color:#9AA1AC;display:flex;justify-content:space-between}
+    .bar{display:inline-block;width:54px;height:6px;border-radius:3px;background:#F0F2F5;vertical-align:middle;overflow:hidden}
+    .bar i{display:block;height:100%}
+    @media print{.noprint{display:none}body{padding:0}}
+  </style></head><body>
+  <div class="hd"><div class="logo">P</div><div><h1>PINIT Drive — izvještaj o stanju cestovne mreže</h1><div class="sub">Period: ${month} · generisano ${today} · automatsko prikupljanje iz flote</div></div></div>
+  <button class="noprint" onclick="window.print()" style="margin:14px 0;background:#1a7a34;color:#fff;border:none;border-radius:9px;padding:11px 18px;font-weight:600;font-size:13px;cursor:pointer">⬇ Sačuvaj kao PDF / štampaj</button>
+
+  <h2>Sažetak</h2>
+  <p>U izvještajnom periodu flota od ${_V.length} vozila pasivno je skenirala <b>${fmtKM(totalKm)} km</b> gradske mreže, bez namjenskog obilaska. Prosječno stanje kolovoza je <b>IRI ${avgIRI.toFixed(1)} m/km</b> (${avgIRI<4?'dobro':avgIRI<6?'osrednje':'loše'}), s trendom ${trendAvg>0?'pogoršanja':'poboljšanja'} od ${Math.abs(trendAvg).toFixed(2)} u odnosu na prošli period. Identifikovano je <b>${bad.length} dionica</b> u hitnoj kategoriji (IRI > 6) s procijenjenim troškom sanacije od <b>${fmtKM(totalCost)} KM</b>.</p>
+  <div class="kpis">
+    <div class="k"><b>${fmtKM(totalKm)}</b><span>km skenirano</span></div>
+    <div class="k"><b style="color:${avgIRI>6?'#E5484D':avgIRI>4?'#E8920C':'#1a7a34'}">${avgIRI.toFixed(1)}</b><span>prosječni IRI</span></div>
+    <div class="k"><b style="color:#E5484D">${bad.length}</b><span>hitnih dionica</span></div>
+    <div class="k"><b>${fmtKM(totalCost)}</b><span>KM za sanaciju</span></div>
+  </div>
+
+  <h2>Prioritetne dionice za sanaciju</h2>
+  <table><thead><tr><th>Ulica</th><th>Stanje (IRI)</th><th style="text-align:center">Kategorija</th><th style="text-align:right">Procj. trošak</th></tr></thead><tbody>
+  ${bad.map(s=>row(s.n,`<span class="bar"><i style="width:${Math.min(100,iriEst(s.q)/12*100)}%;background:${color(s.q)}"></i></span> ${iriEst(s.q)}`,'<span class="tag h">hitno</span>',fmtKM(costOf(s))+' KM')).join('')}
+  </tbody></table>
+
+  <h2>Predviđanje — dionice koje uskoro postaju kritične</h2>
+  <table><thead><tr><th>Ulica</th><th>IRI sad</th><th style="text-align:center">Do kritičnog</th><th style="text-align:right">Preporuka</th></tr></thead><tbody>
+  ${pred.length?pred.map(x=>row(x.s.n,iriEst(x.s.q),'<b>'+x.m+' mj</b>','planirati radove')).join(''):'<tr><td colspan=4 style="color:#8A9097">Nema dionica koje prelaze prag u narednih 12 mjeseci.</td></tr>'}
+  </tbody></table>
+
+  <h2>Žarišta udara (prioritet pregleda)</h2>
+  <table><thead><tr><th>Lokacija</th><th>Udara</th><th style="text-align:center">Vrh</th><th style="text-align:right">Vjerovatni uzrok</th></tr></thead><tbody>
+  ${hot.map(d=>row(d.lat.toFixed(5)+', '+d.lng.toFixed(5),d.n,(d.peak||0).toFixed(1)+' m/s²',d.why||'ponovljeni udar')).join('')}
+  </tbody></table>
+
+  <div class="note"><b>Metodologija.</b> Stanje kolovoza mjereno je akcelerometrom u vozilima flote i izraženo kao IRI (International Roughness Index, m/km) — modelska procjena iz vibracija, namijenjena prioritizaciji i praćenju trenda, ne kao zamjena za stručni geodetski pregled. Iznosi troškova su okvirne procjene. Izvor: PINIT Drive senzorska mreža.</div>
+
+  <div class="foot"><span>PINIT Drive · Komandni centar</span><span>Stranica 1 · ${today}</span></div>
+  </body></html>`);
+  W.document.close();
+}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2600);}
+
+window.addEventListener('resize',()=>{sizeMap();drawMap();});
+/* ── PRAVA KARTA MREŽE (MapLibre) — crta stvarne segmente (boja po IRI) i udare ── */
+window.netMap=null; window.netMarkers=[];
+function iriColor(iri){return iri>6?'#E5484D':iri>4?'#E8920C':'#1a7a34';}
+function initNetMap(){
+  if(window.netMap||typeof PINIT_MAPS==='undefined'||typeof maplibregl==='undefined')return;
+  if(!document.getElementById('nmap'))return;
+  window.netMap=PINIT_MAPS.init('nmap',{freeRoam:true});
+  if(window.netMap)window.netMap.on('load',function(){try{window.netMap.resize();}catch(e){} drawRealNetMap();});
+}
+/* Gradi linije vožnje iz snimljene putanje (path) — svaki potez obojen po IRI
+   segmenta kojem pripada: zeleno = glatko, narandžasto = osrednje, crveno = loše.
+   Ako vožnja nema putanju (starije verzije aplikacije), spaja tačke segmenata. */
+function routeFeatures(){
+  const feats=[];
+  DRIVES.forEach(d=>{
+    const segs=d.segments||[];
+    const iriAt=i=>{const s=segs[Math.min(Math.max(i|0,0),Math.max(segs.length-1,0))];return s&&typeof s.iri==='number'?s.iri:3;};
+    let line=(d.path||[]).filter(p=>typeof p.lat==='number'&&typeof p.lng==='number');
+    if(line.length<2){ // fallback: tačke segmenata kao putanja
+      line=segs.filter(s=>typeof s.lat==='number'&&typeof s.lng==='number')
+               .map((s,i)=>({lat:s.lat,lng:s.lng,si:i,v:null}));
+    }
+    for(let i=0;i<line.length-1;i++){
+      const a=line[i],b=line[i+1];
+      const si=a.si!=null?a.si:i;
+      const seg=segs[Math.min(Math.max(si|0,0),Math.max(segs.length-1,0))];
+      const slow=!!(seg&&seg.slow)||(a.v!=null&&a.v<20);
+      feats.push({type:'Feature',
+        properties:{iri:iriAt(si),v:a.v==null?-1:a.v,slow:slow?1:0},
+        geometry:{type:'LineString',coordinates:[[a.lng,a.lat],[b.lng,b.lat]]}});
+    }
+  });
+  return feats;
+}
+function drawRoutes(){
+  const fc={type:'FeatureCollection',features:routeFeatures()};
+  const paint={
+    'line-width':['interpolate',['linear'],['zoom'],11,3,16,6.5],
+    'line-color':['case',['==',['get','slow'],1],'#B8BCC2',
+                  ['step',['get','iri'],'#1a7a34',4,'#E8920C',6,'#E5484D']],
+    'line-opacity':0.95
+  };
+  if(window.netMap.getSource('pinit-routes')){
+    window.netMap.getSource('pinit-routes').setData(fc);
+  }else{
+    window.netMap.addSource('pinit-routes',{type:'geojson',data:fc});
+    window.netMap.addLayer({id:'pinit-routes-casing',type:'line',source:'pinit-routes',
+      layout:{'line-cap':'round','line-join':'round'},
+      paint:{'line-width':['interpolate',['linear'],['zoom'],11,5,16,9],'line-color':'#ffffff','line-opacity':.9}});
+    window.netMap.addLayer({id:'pinit-routes',type:'line',source:'pinit-routes',
+      layout:{'line-cap':'round','line-join':'round'},paint:paint});
+  }
+  return fc.features.length;
+}
+/* Dionice snimljene ispod 20 km/h nisu pouzdane za ocjenu neravnina (vozilo u koloni,
+   raskrsnica, parkiranje) — praksa mjerenja telefonom traži 20-100 km/h, najbolje 60-80.
+   Takve dionice ne bojimo kao ocjenu stanja. */
+function usableSegs(){
+  return DRIVES.flatMap(d=>d.segments||[]).filter(s=>!s.slow);
+}
+function slowCount(){
+  return DRIVES.flatMap(d=>d.segments||[]).filter(s=>s.slow).length;
+}
+function drawRealNetMap(){
+  if(!window.netMap)return;
+  if(!window.netMap.isStyleLoaded()){window.netMap.once('idle',drawRealNetMap);return;}
+  (window.netMarkers||[]).forEach(m=>m.remove()); window.netMarkers=[];
+  const segs=usableSegs().filter(s=>typeof s.lat==='number'&&typeof s.lng==='number');
+  const bumps=DRIVES.flatMap(d=>d.bumps).filter(b=>typeof b.lat==='number'&&typeof b.lng==='number');
+  const pts=[];
+  drawRoutes();                       // linije vožnje u bojama
+  (DRIVES||[]).forEach(d=>(d.path||[]).forEach(p=>{if(typeof p.lat==='number')pts.push([p.lng,p.lat]);}));
+  const hasRoute=pts.length>1;
+  if(!hasRoute)segs.forEach(s=>{      // bez putanje: stara prikaz-tačka po segmentu
+    const el=document.createElement('div');
+    el.style.cssText='width:12px;height:12px;border-radius:50%;background:'+iriColor(s.iri)+';border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)';
+    const m=new maplibregl.Marker({element:el}).setLngLat([s.lng,s.lat]).addTo(window.netMap);
+    window.netMarkers.push(m); pts.push([s.lng,s.lat]);
+  });
+  bumps.forEach(b=>{
+    const el=document.createElement('div');
+    el.style.cssText='width:9px;height:9px;border-radius:50%;background:#1A1D21;border:1.5px solid #fff';
+    const m=new maplibregl.Marker({element:el,anchor:'center'}).setLngLat([b.lng,b.lat]).addTo(window.netMap);
+    window.netMarkers.push(m); pts.push([b.lng,b.lat]);
+  });
+  if(pts.length){
+    const lngs=pts.map(p=>p[0]),lats=pts.map(p=>p[1]);
+    try{window.netMap.fitBounds([[Math.min(...lngs),Math.min(...lats)],[Math.max(...lngs),Math.max(...lats)]],{padding:44,maxZoom:16,duration:0});}catch(e){}
+  }
+}
+if(document.readyState!=='loading')initNetMap();else document.addEventListener('DOMContentLoaded',initNetMap);
+/* ═══════════ UVOZ STVARNIH VOŽNJI ═══════════ */
+let DRIVES=[];           // svaka: {segments:[{iri,q,lat,lng,t}], bumps:[{peak,sev,lat,lng,t}], taps:[...], km}
+let profC=null,distC=null;
+
+function importDrives(files){
+  if(!files||!files.length)return;
+  let pending=files.length;
+  for(const f of files){
+    const r=new FileReader();
+    r.onload=()=>{ try{ parseDrive(f.name,r.result); }catch(e){ toast('Greška u fajlu '+f.name); }
+      if(--pending===0)afterImport(); };
+    r.onerror=()=>{ if(--pending===0)afterImport(); };
+    r.readAsText(f);
+  }
+}
+function parseDrive(name,text){
+  const d={name,segments:[],bumps:[],taps:[],km:0};
+  const t=text.trim();
+  if(t[0]==='{'){ // GeoJSON
+    const gj=JSON.parse(t);
+    d.km=gj.properties&&gj.properties.km||0;
+    if(gj.properties&&gj.properties.gps!=null)d.gps=!!gj.properties.gps;
+    for(const ft of (gj.features||[])){
+      const p=ft.properties||{}, g=ft.geometry;
+      const ll=g&&g.coordinates?{lng:g.coordinates[0],lat:g.coordinates[1]}:null;
+      if(p.vrsta==='segment_100m')d.segments.push({iri:p.iri_m_km!=null?p.iri_m_km:iriFromQ(p.glatkoca),q:p.glatkoca,lat:ll&&ll.lat,lng:ll&&ll.lng,t:p.vrijeme_s||0});
+      else if(p.vrsta==='udar')d.bumps.push({peak:p.vrh_ms2||0,sev:p.jacina||'',lat:ll&&ll.lat,lng:ll&&ll.lng,t:p.vrijeme_s||0,cls:p.klasa||null,hz:p.hz||null,dur:p.trajanje_ms||null});
+      else if(p.vrsta==='rucna_oznaka')d.taps.push({tip:p.tip||'',lat:ll&&ll.lat,lng:ll&&ll.lng,t:p.vrijeme_s||0});
+    }
+  }else{ // CSV
+    const lines=t.split(/\r?\n/).filter(Boolean);
+    const head=lines[0].split(',');
+    const ix=n=>head.indexOf(n);
+    for(let i=1;i<lines.length;i++){
+      const c=lines[i].split(',');
+      const vrsta=c[ix('vrsta')];
+      const lat=parseFloat(c[ix('lat')])||null,lng=parseFloat(c[ix('lng')])||null,tt=parseFloat(c[ix('vrijeme_s')])||0;
+      if(vrsta==='segment_100m')d.segments.push({iri:parseFloat(c[ix('iri_m_km')])||iriFromQ(+c[ix('vrijednost')]),q:+c[ix('vrijednost')],lat,lng,t:tt});
+      else if(vrsta==='udar')d.bumps.push({peak:parseFloat(c[ix('vrijednost')])||0,sev:c[ix('tip_ili_jacina')],lat,lng,t:tt,cls:ix('klasa')>-1?(c[ix('klasa')]||null):null,hz:ix('hz')>-1?(parseFloat(c[ix('hz')])||null):null,dur:ix('trajanje_ms')>-1?(parseFloat(c[ix('trajanje_ms')])||null):null});
+      else if(vrsta==='rucna_oznaka')d.taps.push({tip:c[ix('tip_ili_jacina')],lat,lng,t:tt});
+    }
+  }
+  if(d.segments.length||d.bumps.length||d.taps.length){
+    if(d.gps==null)d.gps=d.segments.some(s=>s.lat)||d.bumps.some(b=>b.lat);
+    DRIVES.push(d);
+  }
+}
+function iriFromQ(q){return +((100-(q||0))*0.12).toFixed(1);}
+function qFromIri(iri){return Math.max(0,Math.round(100-iri/0.12));}
+/* PCI procjena iz IRI — gruba veza za komunikaciju s upravom (nije ASTM mjerenje!) */
+function pciFromIri(iri){return Math.max(0,Math.min(100,Math.round(100-iri*9)));}
+
+/* ═══ PMS STATISTIKA: distribucija stanja po dužini, percentili, backlog (FHWA) ═══ */
+const PCI_BANDS=[
+  {n:'Odlično',lo:85,c:'#1a7a34'},
+  {n:'Dobro',lo:70,c:'#34A853'},
+  {n:'Osrednje',lo:55,c:'#FF9500'},
+  {n:'Loše',lo:40,c:'#FF6B35'},
+  {n:'Propalo',lo:0,c:'#FF3B30'}
+];
+function drawNetDist(segs){
+  const el=$('netDist');if(!el)return;
+  if(!segs.length){el.innerHTML='';return;}
+  const counts=PCI_BANDS.map(()=>0);
+  segs.forEach(s=>{const p=pciFromIri(s.iri);for(let i=0;i<PCI_BANDS.length;i++){if(p>=PCI_BANDS[i].lo){counts[i]++;break;}}});
+  const tot=segs.length,kmTot=tot*0.1;
+  el.innerHTML=PCI_BANDS.map((b,i)=>{
+    const pct=Math.round(counts[i]/tot*100),km=(counts[i]*0.1).toFixed(1);
+    return `<div style="display:flex;align-items:center;gap:10px">
+      <span style="width:70px;font-size:12px;font-weight:600">${b.n}</span>
+      <div style="flex:1;height:16px;border-radius:8px;background:var(--surface-2);overflow:hidden"><i style="display:block;height:100%;width:${pct}%;background:${b.c};border-radius:8px"></i></div>
+      <span style="width:96px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums"><b>${pct}%</b> · ${km} km</span></div>`;
+  }).join('');
+  // percentili IRI (median, p85 — standard u struci)
+  const sorted=[...segs].map(s=>s.iri).sort((a,b)=>a-b);
+  const pc=q=>sorted[Math.min(sorted.length-1,Math.floor(q*sorted.length))].toFixed(1);
+  $('netPctl').innerHTML=[
+    ['Medijan IRI',pc(.5)],['85. percentil',pc(.85)],['Najgorih 5%','≥ '+pc(.95)],['Ukupno',kmTot.toFixed(1)+' km']
+  ].map(x=>`<div style="background:var(--surface-2);border-radius:12px;padding:9px 13px;font-size:12px"><span style="color:var(--ink-3);font-weight:600">${x[0]}</span> <b style="margin-left:6px;font-variant-numeric:tabular-nums">${x[1]}</b></div>`).join('');
+}
+function drawBacklog(segs){
+  const el=$('backlogBox');if(!el)return;
+  if(!segs.length){el.innerHTML='';return;}
+  // trošak po kategoriji zahvata (100 m segment): preventiva / rehabilitacija / rekonstrukcija
+  const CU={prev:120,rehab:900,recon:3200}; // KM po segmentu — okvirno
+  let nPrev=0,nRehab=0,nRecon=0;
+  segs.forEach(s=>{const p=pciFromIri(s.iri);if(p>=70)nPrev++;else if(p>=40)nRehab++;else nRecon++;});
+  const cPrev=nPrev*CU.prev,cRehab=nRehab*CU.rehab,cRecon=nRecon*CU.recon;
+  const backlog=cRehab+cRecon;
+  const total=cPrev+cRehab+cRecon||1;
+  const mine=[cPrev/total,cRehab/total,cRecon/total].map(x=>Math.round(x*100));
+  const fhwa=[45,35,20];
+  const row=(lbl,me,f,c)=>`<div style="display:flex;align-items:center;gap:10px;font-size:12px">
+    <span style="width:110px;font-weight:600">${lbl}</span>
+    <div style="flex:1;height:14px;border-radius:7px;background:var(--surface-2);overflow:hidden;position:relative">
+      <i style="display:block;height:100%;width:${me}%;background:${c};border-radius:7px"></i>
+      <span style="position:absolute;left:${f}%;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.5"></span>
+    </div>
+    <span style="width:110px;text-align:right;font-variant-numeric:tabular-nums">tvoje <b>${me}%</b> · cilj ${f}%</span></div>`;
+  el.innerHTML=`
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div style="flex:1;min-width:130px;background:var(--red-soft);border-radius:14px;padding:13px"><div style="font-size:11px;font-weight:600;color:#c8261d">BACKLOG (zaostatak)</div><div style="font-size:24px;font-weight:700;color:var(--red);margin-top:4px">${fmtKM(backlog)} <small style="font-size:12px">KM</small></div><div style="font-size:11px;color:#c8261d;margin-top:2px">sve dionice ispod praga "dobro"</div></div>
+      <div style="flex:1;min-width:130px;background:var(--pinit-soft);border-radius:14px;padding:13px"><div style="font-size:11px;font-weight:600;color:var(--pinit-d)">PREVENTIVA SAD</div><div style="font-size:24px;font-weight:700;color:var(--pinit);margin-top:4px">${fmtKM(cPrev)} <small style="font-size:12px">KM</small></div><div style="font-size:11px;color:var(--pinit-d);margin-top:2px">jeftino održavanje dobrih dionica</div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      ${row('Preventiva',mine[0],fhwa[0],'#1a7a34')}
+      ${row('Rehabilitacija',mine[1],fhwa[1],'#FF9500')}
+      ${row('Rekonstrukcija',mine[2],fhwa[2],'#FF3B30')}
+    </div>
+    <div style="font-size:11.5px;color:var(--ink-3);line-height:1.5">FHWA pravilo: zdrava mreža troši ~45% na preventivu, ~35% na rehabilitaciju, ~20% na rekonstrukciju. Crna crtica = cilj. Ako rekonstrukcija dominira, mreža je zapuštena — svaki odgođeni zahvat množi trošak (i do 10×).</div>`;
+}
+let clsC=null;
+function drawCls(bumps){
+  const card=$('clsCard');if(!card)return;
+  const withCls=bumps.filter(b=>b.cls);
+  if(!withCls.length){card.style.display='none';return;}
+  card.style.display='block';
+  const META={rupa:{n:'Rupa',c:'#FF3B30',fix:'krpljenje'},saht:{n:'Šaht / ivica',c:'#FF9500',fix:'nivelacija poklopca'},prag:{n:'Prag / prelaz',c:'#007AFF',fix:'ne treba popravka'},ulegnuce:{n:'Ulegnuće',c:'#AF52DE',fix:'sanacija podloge'},udar:{n:'Neklasifikovano',c:'#8E8E93',fix:'pregled na terenu'}};
+  const cnt={};withCls.forEach(b=>{cnt[b.cls]=(cnt[b.cls]||0)+1;});
+  const keys=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);
+  if(clsC)clsC.destroy();
+  clsC=new Chart($('clsChart'),{type:'doughnut',data:{labels:keys.map(k=>(META[k]||META.udar).n),datasets:[{data:keys.map(k=>cnt[k]),backgroundColor:keys.map(k=>(META[k]||META.udar).c),borderWidth:0}]},
+    options:{maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}});
+  const popravke=withCls.filter(b=>b.cls!=='prag').length;
+  $('clsList').innerHTML=keys.map(k=>{const m=META[k]||META.udar;
+    return `<div style="display:flex;align-items:center;gap:9px;font-size:12.5px">
+      <span style="width:10px;height:10px;border-radius:50%;background:${m.c};flex-shrink:0"></span>
+      <b style="width:110px">${m.n}</b><span style="width:34px;font-variant-numeric:tabular-nums">${cnt[k]}×</span>
+      <span style="color:var(--ink-3)">→ ${m.fix}</span></div>`;}).join('')
+    +`<div style="margin-top:6px;font-size:12px;color:var(--ink-2)">Za popravku: <b>${popravke}</b> od ${withCls.length} udara (pragovi izdvojeni).</div>`;
+}
+
+function afterImport(){
+  if(!DRIVES.length){toast('Nije pronađen prepoznatljiv zapis u fajlu');return;}
+  $('analysis').style.display='flex';
+  $('srcToggle').style.display='flex';
+  renderAnalysis();
+  setSource(true);   // odmah pređi na "Moji podaci" — sve sekcije koriste tvoj file
+  $('analysis').scrollIntoView({behavior:'smooth'});
+  toast('✓ Učitano vožnji: '+DRIVES.length+' — prikaz: Moji podaci');
+}
+
+function renderAnalysis(){
+  const segs=usableSegs();
+  const bumps=DRIVES.flatMap(d=>d.bumps);
+  const taps=DRIVES.flatMap(d=>d.taps);
+  const km=DRIVES.reduce((a,d)=>a+(d.km||0),0);
+  const avgIRI=segs.length?(segs.reduce((a,s)=>a+s.iri,0)/segs.length):0;
+  const worst=segs.length?Math.max(...segs.map(s=>s.iri)):0;
+  const goodPct=segs.length?Math.round(segs.filter(s=>s.iri<4).length/segs.length*100):0;
+  const withGps=DRIVES.filter(d=>d.gps===true||d.segments.some(s=>s.lat)).length;
+  const noGps=DRIVES.length-withGps;
+  $('anBadge').textContent=DRIVES.length+' vožnji'+(noGps?' · '+noGps+' bez GPS':'');
+  $('anKpis').innerHTML=`
+    <div class="kpi"><div class="kpi-l">Učitano</div><div class="kpi-v">${km.toFixed(1)}<small> km</small></div><div class="kpi-s">${segs.length} segmenata · ${withGps} s GPS / ${noGps} bez</div></div>
+    <div class="kpi"><div class="kpi-l">Prosječni IRI</div><div class="kpi-v" style="color:${avgIRI>6?'var(--red)':avgIRI>4?'var(--amber)':'var(--pinit)'}">${avgIRI.toFixed(1)}<small> m/km</small></div><div class="kpi-s">${iriWord(avgIRI)}</div></div>
+    <div class="kpi"><div class="kpi-l">Najgori segment</div><div class="kpi-v" style="color:var(--red)">${worst.toFixed(1)}</div><div class="kpi-s">IRI vrh</div></div>
+    <div class="kpi"><div class="kpi-l">Udara / oznaka</div><div class="kpi-v">${bumps.length}<small> / ${taps.length}</small></div><div class="kpi-s">${bumps.filter(b=>b.sev==='jak').length} jakih</div></div>
+    <div class="kpi"><div class="kpi-l">Dobar kolovoz</div><div class="kpi-v" style="color:var(--pinit)">${goodPct}<small>%</small></div><div class="kpi-s">rute IRI &lt; 4</div></div>`;
+  drawProfile(segs);
+  drawDist(segs);
+  drawGps(segs,bumps);
+  drawAnomalies(segs,bumps,avgIRI);
+  drawNetDist(segs);
+  drawBacklog(segs);
+  drawCls(bumps);
+}
+function iriWord(i){return i<2.5?'odlično':i<4?'dobro':i<6?'osrednje':i<8?'loše':'vrlo loše';}
+
+function drawProfile(segs){
+  if(profC)profC.destroy();
+  if(!segs.length)return;
+  const data=segs.map(s=>s.iri);
+  const cols=data.map(v=>v>6?'#E5484D':v>4?'#E8920C':'#1a7a34');
+  profC=new Chart($('profChart'),{type:'bar',data:{labels:data.map((_,i)=>i+1),datasets:[{data,backgroundColor:cols,borderRadius:3,maxBarThickness:18}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:c=>'Segment '+c[0].label,label:c=>'IRI '+c.parsed.y.toFixed(1)+' m/km'}}},
+    scales:{y:{beginAtZero:true,grid:{color:'#0000000a'},title:{display:true,text:'IRI (m/km)',font:{size:10}},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:9},maxTicksLimit:14,color:'#9AA1AC'},title:{display:true,text:'redni broj 100 m segmenta',font:{size:10}}}}}});
+}
+function drawDist(segs){
+  if(distC)distC.destroy();
+  const g=segs.filter(s=>s.iri<4).length,m=segs.filter(s=>s.iri>=4&&s.iri<=6).length,b=segs.filter(s=>s.iri>6).length;
+  distC=new Chart($('distChart'),{type:'doughnut',data:{labels:['Dobro','Osrednje','Loše'],datasets:[{data:[g,m,b],backgroundColor:['#1a7a34','#E8920C','#E5484D'],borderWidth:0}]},
+    options:{maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{boxWidth:9,usePointStyle:true,font:{size:11},padding:12}},tooltip:{callbacks:{label:c=>c.label+': '+c.parsed+' segm.'}}}}});
+}
+function drawGps(segs,bumps){
+  const c=$('gpsMap');if(!c)return;
+  const pts=segs.filter(s=>s.lat&&s.lng);
+  const dpr=Math.min(2,devicePixelRatio||1),w=c.parentElement.clientWidth,h=Math.round(w*0.6);
+  c.width=w*dpr;c.height=h*dpr;c.style.height=h+'px';const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);
+  x.clearRect(0,0,w,h);
+  if(pts.length<2){x.fillStyle='#9AA1AC';x.font='12px var(--fn)';x.textAlign='center';x.fillText('Bez GPS-a — mapa prazna, ali IRI i udari su uračunati',w/2,h/2);return;}
+  const lats=pts.map(p=>p.lat),lngs=pts.map(p=>p.lng);
+  const la0=Math.min(...lats),la1=Math.max(...lats),lo0=Math.min(...lngs),lo1=Math.max(...lngs);
+  const pad=22;
+  const sx=v=>pad+(v-lo0)/((lo1-lo0)||1)*(w-2*pad);
+  const sy=v=>h-pad-(v-la0)/((la1-la0)||1)*(h-2*pad);
+  // linija rute
+  x.strokeStyle='#C9CFD8';x.lineWidth=2;x.beginPath();
+  pts.forEach((p,i)=>{const px=sx(p.lng),py=sy(p.lat);i?x.lineTo(px,py):x.moveTo(px,py);});x.stroke();
+  // tačke po IRI
+  for(const p of pts){x.fillStyle=p.iri>6?'#E5484D':p.iri>4?'#E8920C':'#1a7a34';
+    x.beginPath();x.arc(sx(p.lng),sy(p.lat),3.5,0,7);x.fill();}
+  // udari
+  for(const b of bumps)if(b.lat&&b.lng){x.fillStyle='#1A1D21';x.beginPath();x.arc(sx(b.lng),sy(b.lat),2.6,0,7);x.fill();}
+}
+function drawAnomalies(segs,bumps,avgIRI){
+  const thr=Math.max(4,avgIRI*1.5);
+  const anomSeg=segs.filter(s=>s.iri>=thr).map(s=>({type:'Loš segment',val:s.iri.toFixed(1)+' IRI',raw:s.iri,lat:s.lat,lng:s.lng,t:s.t,word:iriWord(s.iri)}));
+  const anomBump=bumps.filter(b=>b.sev==='jak'||b.peak>=8).map(b=>({type:'Jak udar',val:b.peak.toFixed(1)+' m/s²',raw:b.peak/2,lat:b.lat,lng:b.lng,t:b.t,word:b.sev||'jak'}));
+  const all=[...anomSeg,...anomBump].sort((a,b)=>b.raw-a.raw).slice(0,12);
+  $('anomBadge').textContent=all.length+' pronađeno';
+  $('anomBody').innerHTML=all.length?all.map((a,i)=>`<tr>
+    <td style="font-weight:700;color:var(--red)">${i+1}</td>
+    <td style="font-weight:600">${a.type}</td>
+    <td style="font-variant-numeric:tabular-nums">${a.lat?a.lat.toFixed(5)+', '+a.lng.toFixed(5):'—'}</td>
+    <td>${fmtTm(a.t)}</td>
+    <td style="font-weight:700">${a.val}</td>
+    <td><span class="tag ${a.raw>3?'h':'m'}">${a.word}</span></td></tr>`).join('')
+    :'<tr><td colspan="6" style="text-align:center;color:var(--ink-3);padding:20px">Nema izraženih anomalija — ujednačen kolovoz.</td></tr>';
+}
+function fmtTm(s){s=Math.floor(s||0);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+
+/* ═══════════ PREDVIĐANJE PROPADANJA ═══════════ */
+const CRIT_IRI=6;            // kritični prag (iznad = hitno)
+function monthsToCritical(s){
+  const iri=iriEst(s.q), rate=s.dIRI;        // dIRI ~ promjena mjesečno
+  if(iri>=CRIT_IRI)return 0;
+  if(rate<=0.02)return 999;                    // ne propada (ili se popravlja)
+  return Math.round((CRIT_IRI-iri)/rate);
+}
+function projectIRI(s,months){
+  // blago nelinearno: što gore, brže (faktor raste s IRI)
+  let iri=iriEst(s.q);
+  for(let m=0;m<months;m++){iri+=s.dIRI*(1+Math.max(0,(iri-4))*0.12);}
+  return Math.min(14,iri);
+}
+function drawPrediction(){
+  // odaberi 4 dionice koje najprije padaju ispod praga
+  const cand=srcStreets().map(s=>({s,m:monthsToCritical(s)})).filter(x=>x.m<999).sort((a,b)=>a.m-b.m).slice(0,4);
+  const horizon=12;
+  const labels=[];for(let m=0;m<=horizon;m++)labels.push(m===0?'sad':m+'mj');
+  const palette=['#E5484D','#E8920C','#3257B0','#1a7a34'];
+  const ds=cand.map((x,i)=>({label:x.s.n,data:Array.from({length:horizon+1},(_,m)=>+projectIRI(x.s,m).toFixed(2)),
+    borderColor:palette[i],backgroundColor:'transparent',tension:.3,pointRadius:0,borderWidth:2.4}));
+  if(predC)predC.destroy();
+  predC=new Chart($('predChart'),{type:'line',data:{labels,datasets:ds},
+    options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:9,usePointStyle:true,font:{size:10},padding:8}},
+      tooltip:{callbacks:{label:c=>c.dataset.label+': IRI '+c.parsed.y.toFixed(1)}},
+      annotation:false},
+      scales:{y:{min:0,max:12,grid:{color:'#0000000a'},ticks:{font:{size:10}},title:{display:true,text:'IRI (m/km)',font:{size:10}}},
+      x:{grid:{display:false},ticks:{font:{size:9},color:'#9AA1AC'}}}},
+    plugins:[{id:'critline',afterDraw(c){const y=c.scales.y.getPixelForValue(CRIT_IRI);const{left,right}=c.chartArea;
+      const cx=c.ctx;cx.save();cx.strokeStyle='rgba(229,72,77,.55)';cx.setLineDash([5,4]);cx.lineWidth=1.5;
+      cx.beginPath();cx.moveTo(left,y);cx.lineTo(right,y);cx.stroke();
+      cx.fillStyle='#E5484D';cx.font='600 10px sans-serif';cx.fillText('kritično (IRI 6)',left+6,y-5);cx.restore();}}]});
+  $('predList').innerHTML=cand.map(x=>{
+    const m=x.m;const col=m<=2?'var(--red)':m<=6?'var(--amber)':'var(--pinit)';
+    const txt=m===0?'već kritično':m+' mj do hitnog';
+    return `<div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
+      <span style="width:9px;height:9px;border-radius:50%;background:${col};flex-shrink:0"></span>
+      <b style="flex:1">${x.s.n}</b>
+      <span style="font-weight:700;color:${col}">${txt}</span></div>`;}).join('');
+}
+
+/* ═══════════ BUDŽETSKI PLANER ═══════════ */
+function planBudget(){
+  const budget=+$('budget').value;
+  $('budgetVal').textContent=fmtKM(budget)+' KM';
+  // učinak po marki: koliko IRI/štete uklonimo po KM (prioritet najgore + prometno)
+  const ranked=srcStreets().map(s=>{const cost=costOf(s);
+    const benefit=(iriEst(s.q))*(1+s.passes/22)*(1+s.bumps/11); // veći IRI, više prometa i udara = veći učinak
+    return{s,cost,benefit,ratio:benefit/cost};}).sort((a,b)=>b.ratio-a.ratio);
+  let left=budget,chosen=[],spent=0;
+  for(const r of ranked){if(r.cost<=left){chosen.push(r);left-=r.cost;spent+=r.cost;}}
+  const km=chosen.reduce((a,r)=>a+r.s.len,0);
+  const avoided=chosen.reduce((a,r)=>a+(projCost(r.s,6)-r.cost),0); // izbjegnut rast troška
+  $('budgetOut').innerHTML=`
+    <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:90px;background:var(--pinit-soft);border-radius:12px;padding:10px 12px"><div style="font-size:11px;color:var(--pinit-d);font-weight:600">Sanira se</div><div style="font-size:20px;font-weight:700;color:var(--pinit-d)">${chosen.length} <span style="font-size:12px">dionica</span></div></div>
+      <div style="flex:1;min-width:90px;background:var(--surface-2);border-radius:12px;padding:10px 12px"><div style="font-size:11px;color:var(--ink-3);font-weight:600">Pokriveno</div><div style="font-size:20px;font-weight:700">${km.toFixed(1)} <span style="font-size:12px;color:var(--ink-3)">km</span></div></div>
+      <div style="flex:1;min-width:90px;background:var(--surface-2);border-radius:12px;padding:10px 12px"><div style="font-size:11px;color:var(--ink-3);font-weight:600">Iskorišteno</div><div style="font-size:20px;font-weight:700">${fmtKM(spent)} <span style="font-size:12px;color:var(--ink-3)">KM</span></div></div>
+    </div>
+    ${chosen.length?chosen.map(r=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line-2)">
+      <span class="tag ${cond(r.s.q)}">IRI ${iriEst(r.s.q)}</span>
+      <b style="flex:1;font-size:13px">${r.s.n}</b>
+      <span style="font-size:12.5px;font-weight:700">${fmtKM(r.cost)} KM</span></div>`).join(''):'<div style="color:var(--ink-3);font-size:13px;padding:8px">Budžet premali i za jednu dionicu — povećaj iznos.</div>'}
+    <div style="margin-top:10px;font-size:12px;color:var(--pinit-d);font-weight:600">Odgađanjem ovih radova trošak bi za 6 mj narastao za ~${fmtKM(Math.round(avoided))} KM.</div>`;
+}
+
+/* ═══════════ TROŠAK ODGAĐANJA ═══════════ */
+function projCost(s,months){
+  const futureIRI=projectIRI(s,months);
+  const futureQ=Math.max(0,100-futureIRI/0.12);
+  const sev=(100-futureQ)/100;
+  return Math.round((s.len*1000*0.9 + s.bumps*1.4*140) * (0.6+sev*1.4));
+}
+function drawDefer(){
+  const rows=srcStreets().filter(s=>s.dIRI>0.1).sort((a,b)=>b.dIRI-a.dIRI).slice(0,6);
+  $('deferBody').innerHTML=rows.map(s=>{
+    const now=costOf(s),fut=projCost(s,6),diff=fut-now;
+    const i0=iriEst(s.q),i6=projectIRI(s,6).toFixed(1);
+    return `<tr>
+      <td style="font-weight:600">${s.n}</td>
+      <td style="color:${color(s.q)};font-weight:700">${i0}</td>
+      <td style="font-weight:600">${fmtKM(now)} KM</td>
+      <td style="color:${i6>6?'var(--red)':'var(--amber)'};font-weight:700">${i6}</td>
+      <td style="font-weight:600">${fmtKM(fut)} KM</td>
+      <td style="color:var(--red);font-weight:700">+${fmtKM(diff)} KM</td>
+      <td style="font-size:11.5px;color:var(--ink-3)">propada ~${s.dIRI.toFixed(1)} IRI/mj</td></tr>`;
+  }).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--ink-3);padding:18px">Nijedna dionica trenutno ne propada.</td></tr>';
+}
+
+/* ═══════════ HEATMAPA UDARA ═══════════ */
+// sintetička žarišta (demo): grupe udara oko određenih tačaka grada
+const HOT_SEED=[
+  {lat:43.8512,lng:18.3702,n:9,peak:19.4,why:'vjerovatno propali šaht'},
+  {lat:43.8589,lng:18.4115,n:7,peak:14.1,why:'oštećen spoj / udarna rupa'},
+  {lat:43.8466,lng:18.3561,n:5,peak:11.8,why:'neravnina na raskrsnici'},
+  {lat:43.8634,lng:18.4302,n:4,peak:9.6,why:'propala krpa'},
+  {lat:43.8551,lng:18.3925,n:3,peak:8.2,why:'oštećenje uz ivičnjak'},
+  {lat:43.8487,lng:18.3788,n:2,peak:7.1,why:'manja neravnina'},
+];
+function clusterBumps(bumps){
+  // grupiši udare s GPS-om u ~40 m klastere; prati dominantnu klasu
+  const pts=bumps.filter(b=>b.lat&&b.lng);
+  const clusters=[];
+  const R=0.00045; // ~40-50 m
+  const NAMES={rupa:'rupa',saht:'šaht/ivica',prag:'prag/prelaz',ulegnuce:'ulegnuće',udar:'udar'};
+  for(const b of pts){
+    let c=clusters.find(c=>Math.abs(c.lat-b.lat)<R&&Math.abs(c.lng-b.lng)<R);
+    if(c){c.n++;c.peak=Math.max(c.peak,b.peak||0);c.lat=(c.lat*(c.n-1)+b.lat)/c.n;c.lng=(c.lng*(c.n-1)+b.lng)/c.n;
+      if(b.cls){c.klase[b.cls]=(c.klase[b.cls]||0)+1;}}
+    else clusters.push({lat:b.lat,lng:b.lng,n:1,peak:b.peak||0,klase:b.cls?{[b.cls]:1}:{},why:'ponovljeni udar'});
+  }
+  clusters.forEach(c=>{
+    const ks=Object.keys(c.klase);
+    if(ks.length){const dom=ks.sort((a,b)=>c.klase[b]-c.klase[a])[0];c.why=NAMES[dom]||dom;}
+  });
+  return clusters;
+}
+function hotColor(n){return n>=6?'#E5484D':n>=3?'#E8920C':'#FFD23F';}
+function hotData(){
+  const real=clusterBumps(DRIVES.flatMap(d=>d.bumps));
+  return real.length?real.sort((a,b)=>b.n-a.n):HOT_SEED;
+}
+const heat=$('heatMap');let HOTPTS=[];
+function drawHeatmap(){
+  const data=hotData();
+  $('hotBadge').textContent=data.filter(d=>d.n>=3).length+' žarišta';
+  const c=heat;if(!c)return;
+  const dpr=Math.min(2,devicePixelRatio||1),w=c.parentElement.clientWidth,h=Math.round(w*0.62);
+  c.width=w*dpr;c.height=h*dpr;c.style.height=h+'px';const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);
+  x.clearRect(0,0,w,h);
+  // blokovi grada
+  x.fillStyle='#DFDFE6';
+  for(let gx=18;gx<w-10;gx+=56)for(let gy=16;gy<h-10;gy+=44){x.beginPath();x.roundRect(gx,gy,44,32,5);x.fill();}
+  // rijeka
+  x.strokeStyle='#CBD9E6';x.lineWidth=9;x.lineCap='round';x.beginPath();x.moveTo(0,h*0.6);
+  for(let px=0;px<=w;px+=w/8)x.lineTo(px,h*0.6+Math.sin(px*0.02)*11);x.stroke();
+  // skala koordinata
+  const lats=data.map(d=>d.lat),lngs=data.map(d=>d.lng);
+  const la0=Math.min(...lats),la1=Math.max(...lats),lo0=Math.min(...lngs),lo1=Math.max(...lngs);
+  const pad=34;
+  const sx=v=>pad+(v-lo0)/((lo1-lo0)||1)*(w-2*pad);
+  const sy=v=>h-pad-(v-la0)/((la1-la0)||1)*(h-2*pad);
+  HOTPTS=[];
+  // sjaj (heat glow) + tačka
+  for(const d of data){
+    const px=sx(d.lng),py=sy(d.lat),r=10+d.n*3.2;
+    const col=hotColor(d.n);
+    const g=x.createRadialGradient(px,py,2,px,py,r);
+    const rgb=d.n>=6?'229,72,77':d.n>=3?'232,146,12':'255,210,63';
+    g.addColorStop(0,'rgba('+rgb+',.55)');g.addColorStop(1,'rgba('+rgb+',0)');
+    x.fillStyle=g;x.beginPath();x.arc(px,py,r,0,7);x.fill();
+    x.fillStyle=col;x.beginPath();x.arc(px,py,5,0,7);x.fill();
+    x.fillStyle='#fff';x.font='700 10px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(d.n,px,py);
+    HOTPTS.push({px,py,d});
+  }
+  renderHotList();
+}
+heat&&heat.addEventListener('mousemove',e=>{
+  const r=heat.getBoundingClientRect(),mxp=e.clientX-r.left,myp=e.clientY-r.top;
+  let hit=null;for(const p of HOTPTS)if(Math.hypot(mxp-p.px,myp-p.py)<14){hit=p;break;}
+  const tip=$('hotTip');
+  if(hit){tip.innerHTML='<b>'+hit.d.n+' udara</b> · vrh '+(hit.d.peak||0).toFixed(1)+' m/s²<br>'+(hit.d.why||'');
+    tip.style.left=hit.px+'px';tip.style.top=hit.py+'px';tip.classList.add('on');}
+  else tip.classList.remove('on');
+});
+heat&&heat.addEventListener('mouseleave',()=>$('hotTip').classList.remove('on'));
+function drawHotList(){}
+function renderHotList(){
+  const data=hotData();
+  $('hotList').innerHTML=data.slice(0,6).map((d,i)=>{
+    const col=hotColor(d.n);
+    return `<div style="display:flex;align-items:center;gap:11px;padding:9px 11px;background:var(--surface-2);border-radius:12px">
+      <div style="width:30px;height:30px;border-radius:50%;background:${col};color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${d.n}</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${d.why||'Ponovljeni udar'}</div>
+      <div style="font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums">${d.lat.toFixed(5)}, ${d.lng.toFixed(5)} · vrh ${(d.peak||0).toFixed(1)} m/s²</div></div>
+      <button class="mini" onclick="toDispatch('Žarište ${d.lat.toFixed(4)},${d.lng.toFixed(4)}')">Pregled</button></div>`;
+  }).join('');
+}
+
+/* ═══════════ PRIJE / POSLIJE SANACIJE ═══════════ */
+// demo: sanirane dionice s mjerenjem prije i poslije (po segmentima)
+const REHAB=[
+  {n:'Alipašina',date:'15.05.2026.',cost:2440,before:[7.8,8.4,7.1,6.9,7.6,8.0,6.4],after:[1.8,2.1,1.6,2.0,1.9,1.7,2.2]},
+  {n:'Hamdije Čemerlića',date:'02.06.2026.',cost:1680,before:[7.4,6.8,7.9,7.2,6.6],after:[2.4,2.0,2.6,2.2,1.9]},
+  {n:'Kolodvorska',date:'28.04.2026.',cost:1320,before:[6.2,6.7,5.9,6.4],after:[3.1,2.8,3.3,2.9]},
+];
+let rehabC=null;
+function initRehab(){
+  const sel=$('rehabSel');
+  if(sel.options.length!==REHAB.length){
+    sel.innerHTML=REHAB.map((r,i)=>`<option value="${i}">${r.n} · ${r.date}</option>`).join('');
+  }
+  drawRehab();
+}
+function avg(a){return a.reduce((x,y)=>x+y,0)/a.length;}
+function drawRehab(){
+  const idx=Math.min(REHAB.length-1,Math.max(0,+$('rehabSel').value||0));
+  const r=REHAB[idx];
+  const b=avg(r.before),a=avg(r.after);
+  const drop=Math.round((1-a/b)*100);
+  const wordB=a=>a<2.5?'odlično':a<4?'dobro':a<6?'osrednje':a<8?'loše':'vrlo loše';
+  $('rehabStats').innerHTML=`
+    <div style="display:flex;gap:10px">
+      <div style="flex:1;background:var(--red-soft);border-radius:14px;padding:14px"><div style="font-size:11px;font-weight:600;color:#b3261e">PRIJE</div><div style="font-size:30px;font-weight:700;color:var(--red);line-height:1;margin-top:6px">${b.toFixed(1)}</div><div style="font-size:11px;color:#b3261e;margin-top:3px">IRI · ${wordB(b)}</div></div>
+      <div style="flex:1;background:var(--pinit-soft);border-radius:14px;padding:14px"><div style="font-size:11px;font-weight:600;color:var(--pinit-d)">POSLIJE</div><div style="font-size:30px;font-weight:700;color:var(--pinit);line-height:1;margin-top:6px">${a.toFixed(1)}</div><div style="font-size:11px;color:var(--pinit-d);margin-top:3px">IRI · ${wordB(a)}</div></div>
+    </div>
+    <div style="background:var(--surface-2);border-radius:14px;padding:14px;text-align:center">
+      <div style="font-size:13px;color:var(--ink-2);font-weight:600">Poboljšanje</div>
+      <div style="font-size:38px;font-weight:700;color:var(--pinit);line-height:1;margin:6px 0">−${drop}%</div>
+      <div style="font-size:12px;color:var(--ink-3)">trošak radova: <b style="color:var(--ink)">${fmtKM(r.cost)} KM</b></div>
+    </div>`;
+  if(rehabC)rehabC.destroy();
+  const labels=r.before.map((_,i)=>'S'+(i+1));
+  rehabC=new Chart($('rehabChart'),{type:'bar',data:{labels,datasets:[
+    {label:'Prije',data:r.before,backgroundColor:'#E5484D',borderRadius:4,maxBarThickness:20},
+    {label:'Poslije',data:r.after,backgroundColor:'#1a7a34',borderRadius:4,maxBarThickness:20}
+  ]},options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:9,usePointStyle:true,font:{size:11}}},
+    tooltip:{callbacks:{label:c=>c.dataset.label+': IRI '+c.parsed.y.toFixed(1)}}},
+    scales:{y:{beginAtZero:true,max:10,grid:{color:'#0000000a'},title:{display:true,text:'IRI (m/km)',font:{size:10}},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:10},color:'#9AA1AC'}}}}});
+  $('rehabVerdict').textContent='Sanacija uspješna — IRI pao za '+drop+'% ('+b.toFixed(1)+' → '+a.toFixed(1)+')';
+  $('rehabNote').innerHTML='Dionica je iz kategorije <b>'+wordB(b)+'</b> prešla u <b>'+wordB(a)+'</b>. Mjerenje je nezavisno (senzor flote), pa je rezultat provjerljiv — pogodno za izvještaj vijeću i javnost. Sljedeće mjerenje za 3 mjeseca pokazat će drži li se kvalitet.';
+}
+
+/* ═══════════ SEZONSKI OBRAZAC ═══════════ */
+let seasonC=null;
+function drawSeason(){
+  const months=['Jul','Avg','Sep','Okt','Nov','Dec','Jan','Feb','Mar','Apr','Maj','Jun'];
+  // IRI raste preko zime (mraz), pada nakon proljetne sanacije
+  const data=[4.6,4.7,4.8,5.0,5.3,5.7,6.2,6.5,6.3,5.4,5.0,4.8];
+  const cols=data.map(v=>v>6?'#E5484D':v>5?'#E8920C':'#1a7a34');
+  if(seasonC)seasonC.destroy();
+  seasonC=new Chart($('seasonChart'),{type:'bar',data:{labels:months,datasets:[{data,backgroundColor:cols,borderRadius:4,maxBarThickness:22}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'IRI '+c.parsed.y.toFixed(1)+' m/km'}}},
+    scales:{y:{beginAtZero:false,min:4,grid:{color:'#0000000a'},title:{display:true,text:'prosj. IRI',font:{size:10}},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:10},color:'#9AA1AC'}}}}});
+  const peak=Math.max(...data),low=Math.min(...data);
+  $('seasonNote').innerHTML=`Mreža je najgora krajem zime (IRI ~${peak.toFixed(1)} u februaru), a najbolja poslije proljetnih radova (~${low.toFixed(1)}). Preporuka: najveći dio budžeta planirati za <b>mart–maj</b>, odmah po prestanku mraza.`;
+}
+
+/* ═══════════ BENCHMARK GRADOVA ═══════════ */
+const CITIES=[
+  {n:'Vaš grad',iri:4.8,me:true},
+  {n:'Grad B',iri:3.9},
+  {n:'Grad C',iri:5.6},
+  {n:'Grad D',iri:4.2},
+  {n:'Prosjek regije',iri:4.7,avg:true},
+];
+function drawBench(){
+  const max=Math.max(...CITIES.map(c=>c.iri))*1.1;
+  const sorted=[...CITIES].sort((a,b)=>a.iri-b.iri);
+  $('benchList').innerHTML=sorted.map(c=>{
+    const col=c.iri>6?'#E5484D':c.iri>5?'#E8920C':'#1a7a34';
+    const hl=c.me?'background:var(--pinit-soft)':c.avg?'background:var(--surface-2)':'';
+    return `<div style="display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:11px;${hl}">
+      <div style="width:120px;font-weight:${c.me?'700':'600'};font-size:13px">${c.me?'📍 ':''}${c.n}</div>
+      <div style="flex:1;height:9px;border-radius:5px;background:var(--surface-2);overflow:hidden"><div style="height:100%;border-radius:5px;width:${c.iri/max*100}%;background:${col}"></div></div>
+      <div style="font-weight:700;font-size:13px;color:${col};min-width:54px;text-align:right">${c.iri.toFixed(1)}<span style="font-size:10px;color:var(--ink-3);font-weight:500"> IRI</span></div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════ GRAĐANSKI DOPRINOS ═══════════ */
+const CITIZENS=[
+  {n:'Emir K.',km:142,pts:2840},
+  {n:'Lejla M.',km:118,pts:2360},
+  {n:'Tarik H.',km:97,pts:1940},
+  {n:'Amra S.',km:73,pts:1460},
+  {n:'Vedran P.',km:54,pts:1080},
+];
+function drawCitizen(){
+  const days=+$('period').value, scale=days/30;
+  // ONLINE: stvarni doprinos iz Drive vožnji (bez izmišljene rang-liste)
+  if(USE_REAL){
+    const by={}; DRIVES.forEach(d=>{const n=(d.name||d.vozac||'Anoniman'); const km=(d.drive&&d.drive.km)||d.km||0; by[n]=(by[n]||0)+km;});
+    const arr=Object.entries(by).map(([n,km])=>({n,km})).sort((a,b)=>b.km-a.km);
+    const totalKm=Math.round(arr.reduce((a,c)=>a+c.km,0));
+    $('citKm').textContent=fmtKM(totalKm);
+    $('citDrivers').textContent=arr.length;
+    $('citCov').textContent=totalKm>0?Math.min(95,Math.round(totalKm/5)):0;
+    if(!arr.length){ $('citBoard').innerHTML='<div style="color:var(--ink-3);font-size:12.5px;padding:6px 2px">Još nema doprinosa građana — pojaviće se čim neko vozi s aplikacijom.</div>'; return; }
+    const max=arr[0].km||1;
+    $('citBoard').innerHTML=arr.slice(0,8).map((c,i)=>{
+      const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'<span style="color:var(--ink-3)">'+(i+1)+'.</span>';
+      return `<div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
+        <div style="width:22px;text-align:center">${medal}</div>
+        <div style="width:90px;font-weight:600">${c.n}</div>
+        <div style="flex:1;height:7px;border-radius:4px;background:var(--surface-2);overflow:hidden"><div style="height:100%;width:${c.km/max*100}%;background:var(--pinit);border-radius:4px"></div></div>
+        <div style="font-weight:700;min-width:64px;text-align:right">${fmtKM(Math.round(c.km))}<span style="font-size:10px;color:var(--ink-3);font-weight:500"> km</span></div>
+      </div>`;}).join('');
+    return;
+  }
+  // DEMO (file://)
+  const totalKm=Math.round(CITIZENS.reduce((a,c)=>a+c.km,0)*scale);
+  $('citCov').textContent=Math.min(95,38+Math.round(totalKm/30));
+  $('citDrivers').textContent=CITIZENS.length*7;
+  $('citKm').textContent=fmtKM(totalKm);
+  const max=CITIZENS[0].pts;
+  $('citBoard').innerHTML=CITIZENS.map((c,i)=>{
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'<span style="color:var(--ink-3)">'+(i+1)+'.</span>';
+    return `<div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
+      <div style="width:22px;text-align:center">${medal}</div>
+      <div style="width:90px;font-weight:600">${c.n}</div>
+      <div style="flex:1;height:7px;border-radius:4px;background:var(--surface-2);overflow:hidden"><div style="height:100%;width:${c.pts/max*100}%;background:var(--pinit);border-radius:4px"></div></div>
+      <div style="font-weight:700;min-width:64px;text-align:right">${fmtKM(Math.round(c.pts*scale))}<span style="font-size:10px;color:var(--ink-3);font-weight:500"> bod.</span></div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════ UTICAJ MRAZA (meteo) ═══════════
+   U produkciji: broj dana smrzavanje/odmrzavanje iz vremenskog API-ja. */
+let frostC=null;
+function drawFrost(){
+  const months=['Nov','Dec','Jan','Feb','Mar'];
+  const freezeThaw=[6,14,21,18,9];           // dani s prelaskom oko 0°C
+  const iriRise=[0.3,0.4,0.5,0.3,-0.9];      // mjesečna promjena IRI (proljeće = sanacija)
+  if(frostC)frostC.destroy();
+  frostC=new Chart($('frostChart'),{data:{labels:months,datasets:[
+    {type:'bar',label:'Dani mraz/odmrzavanje',data:freezeThaw,backgroundColor:'#9CC4E8',borderRadius:4,maxBarThickness:26,yAxisID:'y'},
+    {type:'line',label:'Promjena IRI',data:iriRise,borderColor:'#E5484D',backgroundColor:'transparent',tension:.3,borderWidth:2.6,pointRadius:3,yAxisID:'y1'}
+  ]},options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:9,usePointStyle:true,font:{size:10}}}},
+    scales:{y:{position:'left',beginAtZero:true,grid:{color:'#0000000a'},title:{display:true,text:'dani',font:{size:9}},ticks:{font:{size:9}}},
+      y1:{position:'right',grid:{display:false},title:{display:true,text:'Δ IRI',font:{size:9}},ticks:{font:{size:9}}},
+      x:{grid:{display:false},ticks:{font:{size:10},color:'#9AA1AC'}}}}});
+  $('frostNote').innerHTML='Vrhunac ciklusa mraza (januar) poklapa se s najbržim propadanjem. Praktično: pojačati mjerenje i pripremiti budžet za sanaciju <b>odmah po zadnjem mrazu</b>, prije nego pukotine prerastu u rupe.';
+}
+
+/* ═══════════ INIT ═══════════ */
+sizeMap();
+if(location.protocol==='http:'||location.protocol==='https:'){
+  // online: ne crtaj demo — prazan ekran dok ne stignu prave vožnje (render se prepisuje niže)
+  DRIVES=[];
+}else{
+  render();
+}
+</script>
+<script>
+/* ═══════════ REAL MODE: automatsko povlačenje sa PINIT servera ═══════════ */
+(function(){
+'use strict';
+const SERVER=(function(){try{var o=window.parent.location.origin;if(/^https?:/.test(o))return o;}catch(e){}return (location.protocol==='http:'||location.protocol==='https:')?location.origin:'';})();
+if(!SERVER)return; // otvoren kao fajl → ostaje ručni uvoz
+let lastDriveCount=-1;
+
+function fmtT(ms){const d=new Date(ms);return d.getDate()+'.'+(d.getMonth()+1)+'. '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+
+function pullDrives(){
+  fetch(SERVER+'/api/drives').then(r=>r.json()).then(list=>{
+    if(!Array.isArray(list))list=[];
+    if(list.length===lastDriveCount)return;
+    lastDriveCount=list.length;
+    if(!list.length){DRIVES=[];render();return;}   // prazno → prazno stanje, nikad demo
+    DRIVES=list.map((rec,i)=>{
+      const d=rec.drive||{};
+      return {name:(rec.name?rec.name+' · ':'')+(rec.city||'')+' · '+fmtT(rec.ts),
+        segments:(d.segments||[]).map(s=>({iri:s.iri!=null?s.iri:iriFromQ(s.q),q:s.q,lat:s.lat,lng:s.lng,t:s.t||0,v:s.v!=null?s.v:null,slow:!!s.slow})),
+        bumps:(d.bumps||[]).map(b=>({peak:b.peak||0,sev:b.sev||'',lat:b.lat,lng:b.lng,t:b.t||0,cls:b.cls||null,hz:b.hz||null,dur:b.dur||null})),
+        taps:(d.taps||[]).map(t=>({tip:t.tip||'',lat:t.lat,lng:t.lng,t:t.t||0})),
+        path:(d.path||[]).filter(p=>p&&typeof p.lat==='number'&&typeof p.lng==='number')
+             .map(p=>({lat:p.lat,lng:p.lng,v:p.v!=null?p.v:null,si:p.si!=null?p.si:null,t:p.t||0})),
+        test:!!d.test,
+        km:d.km||0,gps:d.gps!=null?!!d.gps:(d.segments||[]).some(s=>s.lat)};
+    }).filter(d=>d.segments.length||d.bumps.length||d.taps.length);
+    if(DRIVES.length){afterImport();toast('🚗 Povučeno vožnji sa servera: '+DRIVES.length);}
+    else{render();}
+  }).catch(()=>{ if(lastDriveCount<=0){DRIVES=[];render();} });  // greška/buđenje servera → prazno stanje
+}
+
+
+
+/* ═══ ONLINE ČIŠĆENJE: bez demo podataka kad radi preko servera ═══ */
+const TIME_SECS=['Predviđanje propadanja','Budžetski planer','Trošak odgađanja','Prije / poslije sanacije','Sezonski obrazac','Benchmark','Uticaj mraza'];
+function emptyState(){
+  document.querySelectorAll('.card,.kpis').forEach(e=>{e.style.display='none';});
+  if(document.getElementById('pinitEmpty'))return;
+  const d=document.createElement('div');d.id='pinitEmpty';
+  d.style.cssText='margin:8px 0 16px;padding:34px 26px;border:1px dashed var(--line);background:#fff;border-radius:16px;text-align:center;color:var(--ink-3);font-size:14px;line-height:1.6;';
+  d.innerHTML='<div style="margin-bottom:8px;display:flex;justify-content:center;"><svg viewBox="0 0 24 24" style="width:40px;height:40px;fill:#1a7a34;"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg></div><b style="color:var(--ink);">Nema mjerenja još</b><br>Podaci će se pojaviti kad neko obavi Drive vožnju u PINIT aplikaciji.<br><span style="font-size:12px;">Osvježava se automatski.</span>';
+  const k=document.getElementById('kpis');k.parentNode.insertBefore(d,k);
+}
+function clearEmpty(){
+  const d=document.getElementById('pinitEmpty');if(d)d.remove();
+  document.querySelectorAll('.card,.kpis').forEach(e=>{e.style.display='';});
+}
+function neutralizeTimeSections(){
+  document.querySelectorAll('.card').forEach(card=>{
+    const t=card.querySelector('.card-h .card-t');if(!t)return;
+    if(!TIME_SECS.some(x=>t.textContent.indexOf(x)>-1))return;
+    // sakrij SVE osim zaglavlja (grafovi, tabele, tekst) — i drži ih skrivenim
+    [...card.children].forEach(ch=>{ if(ch.classList.contains('card-h'))return; if(ch.getAttribute('data-nodata'))return; ch.style.display='none'; });
+    if(card.querySelector('[data-nodata]'))return;
+    const n=document.createElement('div');n.setAttribute('data-nodata','1');
+    n.style.cssText='padding:18px 4px 6px;color:var(--ink-3);font-size:13px;line-height:1.55;';
+    n.innerHTML='📊 <b style="color:var(--ink);">Nedovoljno podataka.</b> Ova analiza traži mjerenja kroz više sedmica/sezona — popuniće se kad ih bude dovoljno.';
+    card.appendChild(n);
+  });
+}
+const _origRender=window.render;
+let _neutTimer=null;
+window.render=function(){
+  if(!DRIVES.length){emptyState();return;}
+  clearEmpty();_origRender();
+  // grafovi se crtaju u setTimeout(...,40) unutar sekcija → neutraliziraj POSLIJE toga, i još jednom za svaki slučaj
+  clearTimeout(_neutTimer);
+  [60,180,400].forEach(ms=>setTimeout(neutralizeTimeSections,ms));
+};
+// sakrij Demo prekidač online i zaključaj izvor na "Moji podaci"
+const _origSetSource=window.setSource;
+window.setSource=function(){_origSetSource(true);};
+(function(){const d=document.getElementById('tgDemo');if(d)d.style.display='none';})();
+setSource(true);
+
+pullDrives();
+setInterval(pullDrives,15000);
+})();
+</script>
+</body>
+</html>

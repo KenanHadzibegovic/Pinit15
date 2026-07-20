@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a7a34">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>PINIT Worker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --g2:#1a7a34;--gd2:#0f4f21;--gl2:#e8f5ec;
+  --g:#1a7a34;--gl:#e8f5ec;--gd:#0f4f21;
+  --r:#ff3b30;--rl:#fff0f0;
+  --a:#ff9500;--al:#fff8ec;
+  --bl:#007aff;--bll:#f0f6ff;
+  --bg:#f2f2f7;--card:#fff;
+  --sep:rgba(60,60,67,.14);--sep2:rgba(60,60,67,.06);
+  --tx:#000;--tx2:#3c3c43;--tx3:#8e8e93;
+  --rl-r:18px;--rm-r:13px;
+  --fn:'Inter',-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',Roboto,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;min-height:100vh;background:radial-gradient(ellipse at 60% 0%,#6e3d1a 0%,#3c1f0d 55%,#111 100%);font-family:var(--fn);display:flex;align-items:center;justify-content:center;padding:20px;}
+.phone{width:375px;height:780px;background:var(--bg);border-radius:50px;border:10px solid #1c1c1e;overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 0 0 1px rgba(255,255,255,.06) inset,0 50px 100px rgba(0,0,0,.5);}
+.di{width:126px;height:34px;background:#1c1c1e;border-radius:20px;margin:10px auto 0;flex-shrink:0;z-index:10;display:flex;align-items:center;justify-content:center;gap:10px;}
+.di-c{width:10px;height:10px;border-radius:50%;background:#0a0a0a;border:1.5px solid #333;}
+.di-s{width:22px;height:8px;border-radius:4px;background:#0a0a0a;border:1.5px solid #2a2a2a;}
+.sb{display:flex;justify-content:space-between;align-items:center;padding:4px 20px 8px;flex-shrink:0;}
+.sb-t{font-size:15px;font-weight:600;color:var(--tx);letter-spacing:-.3px;}
+.sb-l{font-size:13px;font-weight:800;color:var(--g2);letter-spacing:1.5px;}
+.sb-i{display:flex;align-items:center;gap:5px;}
+.sb-i svg{width:16px;height:16px;fill:var(--tx);}
+.scr{flex:1;display:none;flex-direction:column;overflow:hidden;min-height:0;}
+.scr.on{display:flex;}
+
+/* WORKER HEADER */
+.w-header{background:linear-gradient(135deg,#22a848,#0f4f21);padding:14px 18px;flex-shrink:0;display:flex;align-items:center;gap:12px;}
+.w-av{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0;}
+.w-info{flex:1;min-width:0;}
+.w-name{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.2px;}
+.w-sub{font-size:11px;color:rgba(255,255,255,.78);margin-top:1px;display:flex;align-items:center;gap:5px;}
+.w-dot{width:6px;height:6px;border-radius:50%;background:#4ade80;display:inline-block;animation:wpulse 2s ease-in-out infinite;}
+@keyframes wpulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+.w-shift{background:rgba(255,255,255,.2);padding:5px 10px;border-radius:10px;font-size:11px;color:#fff;font-weight:600;}
+
+/* TASK STRIP */
+.t-strip{display:flex;background:#fff;border-top:1px solid var(--sep);flex-shrink:0;padding:10px 0;}
+.t-cell{flex:1;text-align:center;border-right:1px solid var(--sep);padding:0 4px;}
+.t-cell:last-child{border:none;}
+.t-num{font-size:22px;font-weight:800;letter-spacing:-1px;line-height:1;}
+.t-lbl{font-size:9px;color:var(--tx3);margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+
+/* TASK LIST */
+.tlist{flex:1;overflow-y:auto;padding:12px 16px 90px;display:flex;flex-direction:column;gap:11px;}
+.tlist::-webkit-scrollbar{display:none;}
+
+.tcard{background:#fff;border-radius:var(--rl-r);overflow:hidden;border:1px solid var(--sep2);box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.tcard.active{border-color:var(--g2);box-shadow:0 4px 16px rgba(26,122,52,.18);}
+.tcard.urgent{border-left:4px solid var(--r);}
+.tc-top{padding:14px 15px 12px;display:flex;align-items:flex-start;gap:11px;}
+.tc-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tc-icon svg{width:24px;height:24px;}
+.tc-body{flex:1;min-width:0;}
+.tc-title-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.tc-title{font-size:16px;font-weight:700;color:var(--tx);letter-spacing:-.3px;}
+.tc-priority{font-size:10px;font-weight:800;padding:3px 7px;border-radius:6px;text-transform:uppercase;letter-spacing:.4px;}
+.pri-urgent{background:var(--r);color:#fff;}
+.pri-med{background:var(--a);color:#fff;}
+.pri-low{background:var(--gl);color:var(--gd);}
+.tc-addr{font-size:13px;color:var(--tx2);margin-top:5px;display:flex;align-items:center;gap:5px;}
+.tc-addr svg{width:13px;height:13px;fill:var(--tx3);flex-shrink:0;}
+.tc-meta{display:flex;gap:13px;margin-top:6px;font-size:11px;color:var(--tx3);}
+.tc-meta-item{display:flex;align-items:center;gap:4px;}
+.tc-meta-item svg{width:11px;height:11px;fill:var(--tx3);}
+.tc-status-bar{padding:0 15px 12px;}
+.status-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;}
+.st-new{background:var(--bll);color:var(--bl);}
+.st-route{background:var(--al);color:#7a4500;}
+.st-onsite{background:var(--gl2);color:var(--gd2);}
+.st-progress{background:#fff0e3;color:var(--gd2);}
+.st-done{background:var(--gl);color:var(--gd);}
+.tc-action{display:flex;}
+.tc-btn{flex:1;padding:14px;font-size:15px;font-weight:700;font-family:var(--fn);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;letter-spacing:-.2px;transition:transform .1s;}
+.tc-btn:active{transform:scale(.98);}
+.tc-btn svg{width:18px;height:18px;fill:currentColor;}
+.tcb-primary{background:var(--g2);color:#fff;}
+.tcb-secondary{background:#fff;color:var(--tx);border-top:1px solid var(--sep);}
+.tcb-success{background:var(--g);color:#fff;}
+.tcb-disabled{background:var(--bg);color:var(--tx3);cursor:default;}
+
+/* PROGRESS TIMELINE */
+.timeline{padding:12px 15px;background:#fafafa;border-top:1px solid var(--sep2);display:flex;justify-content:space-between;position:relative;}
+.tl-step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;z-index:1;}
+.tl-dot{width:24px;height:24px;border-radius:50%;background:#e5e5ea;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;}
+.tl-dot.done{background:var(--g);}
+.tl-dot.active{background:var(--g2);box-shadow:0 0 0 4px rgba(26,122,52,.2);animation:pulse 1.6s ease-in-out infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(26,122,52,.2);}50%{box-shadow:0 0 0 8px rgba(26,122,52,.06);}}
+.tl-dot svg{width:13px;height:13px;fill:#fff;}
+.tl-lbl{font-size:9px;color:var(--tx3);margin-top:4px;font-weight:600;letter-spacing:.2px;}
+.tl-lbl.active{color:var(--g2);}
+.tl-lbl.done{color:var(--g);}
+.timeline::before{content:'';position:absolute;top:24px;left:32px;right:32px;height:2px;background:#e5e5ea;z-index:0;}
+.tl-progress{position:absolute;top:24px;left:32px;height:2px;background:var(--g);z-index:0;transition:width .3s;}
+
+/* DETAIL OVERLAY */
+.ov{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:50;display:none;flex-direction:column;justify-content:flex-end;backdrop-filter:blur(4px);}
+.ov.on{display:flex;animation:fi .2s ease;}
+@keyframes fi{from{opacity:0;}to{opacity:1;}}
+.sh{background:var(--card);border-radius:26px 26px 0 0;max-height:92%;overflow-y:auto;animation:su .3s cubic-bezier(.32,.72,0,1);}
+.sh::-webkit-scrollbar{display:none;}
+@keyframes su{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.shdl{width:38px;height:5px;background:#d0d0d5;border-radius:3px;margin:11px auto 14px;}
+
+/* DETAIL CONTENT */
+.det-pad{padding:0 18px 24px;}
+.det-hero{display:flex;gap:13px;align-items:flex-start;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--sep2);}
+.det-icon{width:62px;height:62px;border-radius:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.det-icon svg{width:32px;height:32px;}
+.det-info{flex:1;min-width:0;}
+.det-h{font-size:22px;font-weight:800;color:var(--tx);letter-spacing:-.6px;line-height:1.15;}
+.det-pri-row{display:flex;align-items:center;gap:6px;margin-top:7px;}
+.det-section{margin-bottom:16px;}
+.det-label{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:7px;}
+
+.addr-card{background:var(--bg);border-radius:14px;padding:13px 14px;display:flex;align-items:center;gap:11px;}
+.addr-card svg{width:18px;height:18px;fill:var(--g2);flex-shrink:0;}
+.addr-card-text{flex:1;font-size:14px;font-weight:600;color:var(--tx);}
+.addr-card-dist{font-size:11px;color:var(--tx3);margin-top:2px;font-weight:500;}
+.nav-btn{background:var(--g2);color:#fff;border:none;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;font-family:var(--fn);cursor:pointer;display:flex;align-items:center;gap:5px;}
+.nav-btn svg{width:14px;height:14px;fill:#fff;}
+
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.info-cell{background:var(--bg);border-radius:12px;padding:11px 12px;}
+.info-cell-lbl{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:3px;}
+.info-cell-val{font-size:14px;font-weight:700;color:var(--tx);}
+
+.citizen-photo{width:100%;height:180px;border-radius:14px;object-fit:cover;background:linear-gradient(135deg,#ffd5b8,#ffb98a);display:flex;align-items:center;justify-content:center;color:rgba(0,0,0,.5);font-size:13px;font-weight:600;}
+
+.note-box{background:#fffbf5;border:1px solid #ffd9a8;border-radius:12px;padding:12px 14px;font-size:13px;color:#7a4500;line-height:1.5;display:flex;gap:9px;}
+.note-box svg{width:16px;height:16px;fill:#ff9500;flex-shrink:0;margin-top:1px;}
+
+/* BIG ACTION BUTTONS */
+.big-action{width:100%;border:none;border-radius:18px;padding:18px;font-size:17px;font-weight:800;font-family:var(--fn);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;letter-spacing:-.3px;margin-bottom:10px;min-height:60px;}
+.big-action:active{transform:scale(.98);}
+.big-action svg{width:22px;height:22px;}
+.ba-orange{background:var(--g2);color:#fff;box-shadow:0 4px 16px rgba(26,122,52,.4);}
+.ba-green{background:var(--g);color:#fff;box-shadow:0 4px 16px rgba(28,122,53,.4);}
+.ba-red{background:var(--r);color:#fff;box-shadow:0 4px 16px rgba(255,59,48,.3);}
+.ba-grey{background:var(--bg);color:var(--tx2);border:1.5px solid var(--sep);}
+
+/* PHOTO PROOF SECTION */
+.proof-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;}
+.proof-slot{aspect-ratio:1;border-radius:14px;border:2px dashed var(--sep);background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:all .15s;}
+.proof-slot.before{border-color:#ffb98a;background:#fff5eb;}
+.proof-slot.after{border-color:#9fe1cb;background:#eafff3;}
+.proof-slot.filled{border-style:solid;border-color:transparent;background:#000;padding:0;}
+.proof-slot img{width:100%;height:100%;object-fit:cover;border-radius:12px;}
+.proof-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;}
+.proof-slot.before .proof-label{color:#cc5500;}
+.proof-slot.after .proof-label{color:#0f6e56;}
+.proof-icon{font-size:28px;margin-bottom:5px;}
+.proof-sub{font-size:10px;color:var(--tx3);font-weight:600;margin-top:3px;}
+.proof-stamp{position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.7);color:#fff;padding:3px 8px;border-radius:8px;font-size:9px;font-weight:700;display:flex;align-items:center;gap:3px;}
+.proof-stamp svg{width:9px;height:9px;fill:#fff;}
+
+/* COST INPUT */
+.cost-row{display:flex;gap:8px;margin-bottom:8px;}
+.cost-input{flex:1;background:var(--bg);border:1.5px solid var(--sep);border-radius:12px;padding:12px 14px;font-size:15px;font-family:var(--fn);font-weight:600;color:var(--tx);outline:none;}
+.cost-input:focus{border-color:var(--g2);background:#fff;}
+.cost-cur{display:flex;align-items:center;font-size:14px;font-weight:700;color:var(--tx3);padding:0 8px;}
+.note-input{width:100%;background:var(--bg);border:1.5px solid var(--sep);border-radius:12px;padding:12px 14px;font-size:14px;font-family:var(--fn);color:var(--tx);outline:none;resize:none;min-height:60px;line-height:1.4;}
+.note-input:focus{border-color:var(--g2);background:#fff;}
+
+/* OFFLINE BANNER */
+.offline-banner{background:#ffa500;color:#fff;padding:7px 18px;font-size:11px;font-weight:700;text-align:center;display:none;align-items:center;justify-content:center;gap:6px;flex-shrink:0;}
+.offline-banner.on{display:flex;}
+.offline-banner svg{width:11px;height:11px;fill:#fff;}
+
+/* BOTTOM NAV */
+.bnav{display:flex;background:rgba(255,255,255,.98);border-top:1px solid var(--sep);flex-shrink:0;padding:6px 0 10px;backdrop-filter:blur(10px);position:relative;}
+.nbtn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:3px 0;border:none;background:none;}
+.nbtn svg{width:24px;height:24px;fill:var(--tx3);transition:fill .15s;}
+.nbtn .nl{font-size:9px;color:var(--tx3);font-weight:600;transition:color .15s;font-family:var(--fn);}
+.nbtn.on svg{fill:var(--g2);}
+.nbtn.on .nl{color:var(--g2);}
+.nbw{position:relative;display:inline-block;}
+.nbadge{position:absolute;top:-3px;right:-7px;min-width:18px;height:18px;border-radius:9px;background:var(--r);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid #fff;}
+
+/* PROFILE */
+.p-hero{background:linear-gradient(135deg,#22a848,#0f4f21);padding:24px 18px 18px;color:#fff;flex-shrink:0;}
+.p-av-big{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;margin-bottom:11px;}
+.p-name-big{font-size:22px;font-weight:800;letter-spacing:-.4px;}
+.p-sub-big{font-size:13px;opacity:.85;margin-top:2px;}
+.p-shift-card{background:rgba(255,255,255,.18);border-radius:14px;padding:12px 14px;margin-top:14px;display:flex;justify-content:space-between;align-items:center;}
+.p-shift-l{font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.4px;font-weight:700;}
+.p-shift-v{font-size:15px;font-weight:700;margin-top:2px;}
+.p-body{padding:14px 18px 90px;overflow-y:auto;}
+.p-body::-webkit-scrollbar{display:none;}
+.p-block{background:#fff;border-radius:var(--rl-r);overflow:hidden;border:1px solid var(--sep2);margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.p-block-hdr{padding:14px 16px 10px;font-size:13px;font-weight:800;color:var(--tx);border-bottom:1px solid var(--sep2);text-transform:uppercase;letter-spacing:.4px;}
+.p-stat-row{display:flex;align-items:center;padding:14px 16px;gap:14px;border-bottom:1px solid var(--sep2);}
+.p-stat-row:last-child{border-bottom:none;}
+.p-stat-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.p-stat-icon svg{width:18px;height:18px;}
+.p-stat-info{flex:1;}
+.p-stat-lbl{font-size:13px;color:var(--tx);font-weight:600;}
+.p-stat-sub{font-size:11px;color:var(--tx3);margin-top:1px;}
+.p-stat-val{font-size:17px;font-weight:800;color:var(--tx);}
+
+/* TOAST */
+.toast{position:absolute;top:60px;left:14px;right:14px;background:rgba(28,122,53,.97);color:#fff;border-radius:14px;padding:13px 16px;font-size:13px;font-weight:600;z-index:100;display:none;backdrop-filter:blur(10px);box-shadow:0 4px 16px rgba(0,0,0,.3);line-height:1.4;}
+.toast.on{display:flex;align-items:center;gap:9px;animation:tslide .3s ease;}
+.toast svg{width:18px;height:18px;fill:#fff;flex-shrink:0;}
+@keyframes tslide{from{transform:translateY(-10px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
+/* SUCCESS OVERLAY */
+.suc-wrap{padding:24px 18px;text-align:center;}
+.suc-icon-box{width:88px;height:88px;border-radius:50%;background:var(--gl);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;position:relative;}
+.suc-icon-box svg{width:46px;height:46px;fill:var(--g);}
+.suc-ring{position:absolute;inset:-4px;border-radius:50%;border:3px solid var(--g);opacity:.3;animation:sring 1.5s ease-out infinite;}
+@keyframes sring{0%{transform:scale(.9);opacity:.5;}100%{transform:scale(1.3);opacity:0;}}
+.suc-title{font-size:24px;font-weight:800;letter-spacing:-.6px;margin-bottom:6px;}
+.suc-sub{font-size:14px;color:var(--tx3);margin-bottom:18px;line-height:1.5;}
+.suc-summary{background:var(--gl);border-radius:14px;padding:13px 15px;margin-bottom:14px;text-align:left;}
+.suc-summary-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;}
+.suc-summary-row span:first-child{color:var(--gd);opacity:.8;}
+.suc-summary-row span:last-child{color:var(--gd);font-weight:700;}
+
+/* FOTO MODAL */
+.photo-modal{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.95);z-index:200;display:none;flex-direction:column;}
+.photo-modal.on{display:flex;}
+.pm-header{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;color:#fff;}
+.pm-title{font-size:15px;font-weight:700;}
+.pm-close{background:rgba(255,255,255,.15);border:none;width:36px;height:36px;border-radius:50%;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.pm-stage{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;}
+.pm-preview{max-width:100%;max-height:100%;border-radius:18px;border:3px solid rgba(255,255,255,.18);}
+.pm-stage-empty{width:240px;height:320px;border-radius:18px;border:3px dashed rgba(255,255,255,.4);display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,.7);}
+.pm-stage-empty svg{width:54px;height:54px;fill:rgba(255,255,255,.6);margin-bottom:11px;}
+.pm-controls{padding:18px;display:flex;gap:10px;}
+.pm-shutter{flex:1;background:var(--g2);color:#fff;border:none;border-radius:16px;padding:18px;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:var(--fn);}
+.pm-shutter svg{width:22px;height:22px;fill:#fff;}
+.pm-confirm{flex:1;background:var(--g);color:#fff;border:none;border-radius:16px;padding:18px;font-size:15px;font-weight:800;cursor:pointer;display:none;align-items:center;justify-content:center;gap:8px;font-family:var(--fn);}
+.pm-confirm.on{display:flex;}
+.pm-confirm svg{width:22px;height:22px;fill:#fff;}
+.pm-input{display:none;}
+.pm-stamps{position:absolute;bottom:80px;left:24px;right:24px;display:flex;justify-content:space-between;color:#fff;font-size:11px;font-weight:600;opacity:.85;}
+.pm-stamp-item{display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.5);padding:6px 10px;border-radius:8px;backdrop-filter:blur(4px);}
+.pm-stamp-item svg{width:11px;height:11px;fill:#fff;}
+
+/* ═══ PRAVA UPOTREBA: preko cijelog ekrana + iOS zaključavanje ═══ */
+html,body{display:block;padding:0;background:var(--bg);position:fixed;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:manipulation;}
+.phone{width:100%;height:100vh;height:100dvh;border:none;border-radius:0;box-shadow:none;margin:0;padding-top:env(safe-area-inset-top);}
+.di,.sb{display:none;}
+.bnav{padding-bottom:calc(10px + env(safe-area-inset-bottom));}
+/* iOS nasilno zumira na fokus inputa <16px */
+input,select,textarea{font-size:16px !important;}
+@media (min-width:600px){body{background:#eceef0;}.phone{max-width:440px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,.12);}}
+</style>
+</head>
+<body>
+<div class="phone" id="app">
+  <div class="di"><div class="di-c"></div><div class="di-s"></div><div class="di-c"></div></div>
+  <div class="sb">
+    <span class="sb-t" id="clk">09:41</span>
+    <span class="sb-l">PINIT WORKER</span>
+    <div class="sb-i">
+      <svg viewBox="0 0 17 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="4.5" y="5.5" width="3" height="6.5" rx="1"/><rect x="9" y="2.5" width="3" height="9.5" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg>
+      <svg viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="22" y="3.5" width="2.5" height="5" rx="1.2"/><rect x="1.5" y="2.5" width="15" height="7" rx="1.5"/></svg>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="offline-banner" id="offbanner">
+    <svg viewBox="0 0 24 24"><path d="M12 3L4 9v12h16V9l-8-6zm-2 16v-6h4v6h-4z"/></svg>
+    Offline — podaci se čuvaju lokalno
+  </div>
+
+  <!-- ═══ MAIN SCREEN — TASK LIST ═══ -->
+  <div class="scr on" id="s-main">
+    <div class="w-header">
+      <div class="w-av">EB</div>
+      <div class="w-info">
+        <div class="w-name">Edin Begić</div>
+        <div class="w-sub"><span class="w-dot"></span>Aktivna smjena · JKP Putevi</div>
+      </div>
+      <div class="w-shift">07:00 – 15:00</div>
+    </div>
+    <div class="t-strip">
+      <div class="t-cell"><div class="t-num" style="color:var(--g2)" id="ts-active">0</div><div class="t-lbl">Aktivno</div></div>
+      <div class="t-cell"><div class="t-num" style="color:var(--bl)" id="ts-pending">0</div><div class="t-lbl">Čeka</div></div>
+      <div class="t-cell"><div class="t-num" style="color:var(--g)" id="ts-done">0</div><div class="t-lbl">Završeno</div></div>
+      <div class="t-cell"><div class="t-num" id="ts-km">0</div><div class="t-lbl">km danas</div></div>
+    </div>
+    <div class="tlist" id="tasks"></div>
+  </div>
+
+  <!-- ═══ DETAIL OVERLAY ═══ -->
+  <div class="ov" id="det-ov" onclick="ovClose(event,'det-ov')">
+    <div class="sh">
+      <div class="shdl"></div>
+      <div class="det-pad" id="det-content"></div>
+    </div>
+  </div>
+
+  <!-- ═══ COMPLETE OVERLAY (PROOF + COST) ═══ -->
+  <div class="ov" id="comp-ov" onclick="ovClose(event,'comp-ov')">
+    <div class="sh">
+      <div class="shdl"></div>
+      <div class="det-pad" id="comp-content"></div>
+    </div>
+  </div>
+
+  <!-- ═══ SUCCESS OVERLAY ═══ -->
+  <div class="ov" id="suc-ov">
+    <div class="sh">
+      <div class="shdl"></div>
+      <div class="suc-wrap" id="suc-content"></div>
+    </div>
+  </div>
+
+  <!-- ═══ PHOTO MODAL ═══ -->
+  <div class="photo-modal" id="ph-modal">
+    <div class="pm-header">
+      <div class="pm-title" id="pm-title">Foto dokaz</div>
+      <button class="pm-close" onclick="closePhotoModal()">✕</button>
+    </div>
+    <div class="pm-stage">
+      <div class="pm-stage-empty" id="pm-empty">
+        <svg viewBox="0 0 24 24"><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+        <div>Pritisni dugme<br>za fotografiju</div>
+      </div>
+      <img class="pm-preview" id="pm-preview" style="display:none">
+    </div>
+    <div class="pm-stamps" id="pm-stamps" style="display:none">
+      <div class="pm-stamp-item"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg><span id="pm-gps">43.8563° N, 18.4131° E</span></div>
+      <div class="pm-stamp-item"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm.01 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg><span id="pm-time">09:41</span></div>
+    </div>
+    <div class="pm-controls">
+      <input class="pm-input" type="file" accept="image/*" capture="environment" id="ph-input" onchange="onPhotoCapture(this)">
+      <button class="pm-shutter" id="pm-shutter" onclick="document.getElementById('ph-input').click()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+        Snimi
+      </button>
+      <button class="pm-confirm" id="pm-confirm" onclick="confirmPhoto()">
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        Potvrdi
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ HISTORY SCREEN ═══ -->
+  <div class="scr" id="s-hist">
+    <div class="w-header" style="background:linear-gradient(135deg,#1a7a34,#2e9e4a);">
+      <div class="w-av">📋</div>
+      <div class="w-info">
+        <div class="w-name">Historija zadataka</div>
+        <div class="w-sub" style="color:rgba(255,255,255,.8)">Posljednjih 7 dana</div>
+      </div>
+    </div>
+    <div class="t-strip">
+      <div class="t-cell"><div class="t-num" style="color:var(--g)">24</div><div class="t-lbl">Završeno</div></div>
+      <div class="t-cell"><div class="t-num" style="color:var(--bl)">96%</div><div class="t-lbl">SLA</div></div>
+      <div class="t-cell"><div class="t-num" style="color:var(--g2)">4.8h</div><div class="t-lbl">Prosj. vrijeme</div></div>
+    </div>
+    <div class="tlist" id="hlist"></div>
+  </div>
+
+  <!-- ═══ PROFILE SCREEN ═══ -->
+  <div class="scr" id="s-prof">
+    <div class="p-hero">
+      <div class="p-av-big">EB</div>
+      <div class="p-name-big">Edin Begić</div>
+      <div class="p-sub-big">Asfalt / putevi · JKP Putevi d.o.o.</div>
+      <div class="p-shift-card">
+        <div>
+          <div class="p-shift-l">Današnja smjena</div>
+          <div class="p-shift-v">07:00 – 15:00</div>
+        </div>
+        <div style="text-align:right">
+          <div class="p-shift-l">Status</div>
+          <div class="p-shift-v" style="display:flex;align-items:center;gap:6px;justify-content:flex-end;"><span class="w-dot"></span>Aktivan</div>
+        </div>
+      </div>
+    </div>
+    <div class="p-body">
+      <div class="p-block">
+        <div class="p-block-hdr">Mjesečni rezultati</div>
+        <div class="p-stat-row">
+          <div class="p-stat-icon" style="background:var(--gl);"><svg viewBox="0 0 24 24" style="fill:var(--g)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+          <div class="p-stat-info">
+            <div class="p-stat-lbl">Završeni zadaci</div>
+            <div class="p-stat-sub">+12% u odnosu na prošli mjesec</div>
+          </div>
+          <div class="p-stat-val">142</div>
+        </div>
+        <div class="p-stat-row">
+          <div class="p-stat-icon" style="background:var(--bll);"><svg viewBox="0 0 24 24" style="fill:var(--bl)"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm.01 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div>
+          <div class="p-stat-info">
+            <div class="p-stat-lbl">SLA ispunjen</div>
+            <div class="p-stat-sub">Prosjek tima: 78%</div>
+          </div>
+          <div class="p-stat-val" style="color:var(--g)">96%</div>
+        </div>
+        <div class="p-stat-row">
+          <div class="p-stat-icon" style="background:var(--gl2);"><svg viewBox="0 0 24 24" style="fill:var(--g2)"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/></svg></div>
+          <div class="p-stat-info">
+            <div class="p-stat-lbl">Prosj. vrijeme rješavanja</div>
+            <div class="p-stat-sub">Cilj: < 6h</div>
+          </div>
+          <div class="p-stat-val" style="color:var(--g2)">4.8h</div>
+        </div>
+        <div class="p-stat-row">
+          <div class="p-stat-icon" style="background:#f3f0ff;"><svg viewBox="0 0 24 24" style="fill:#5856d6"><path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg></div>
+          <div class="p-stat-info">
+            <div class="p-stat-lbl">Hitne intervencije</div>
+            <div class="p-stat-sub">Bonus za hitne: +250 KM</div>
+          </div>
+          <div class="p-stat-val" style="color:#5856d6">8</div>
+        </div>
+      </div>
+
+      <div class="p-block">
+        <div class="p-block-hdr">Oprema i vozilo</div>
+        <div class="p-stat-row">
+          <div class="p-stat-icon" style="background:var(--al);"><svg viewBox="0 0 24 24" style="fill:var(--a)"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm12-9l1.96 2.5H17V9.5h1zm0 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg></div>
+          <div class="p-stat-info">
+            <div class="p-stat-lbl">Vozilo</div>
+            <div class="p-stat-sub">Mercedes Atego · 224-A-841</div>
+          </div>
+          <div class="p-stat-val" style="font-size:11px;color:var(--g);background:var(--gl);padding:4px 8px;border-radius:20px;">U redu</div>
+        </div>
+        <div class="p-stat-row">
+          <div class="p-stat-icon" style="background:#edf8fd;"><svg viewBox="0 0 24 24" style="fill:#34aadc"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2z"/></svg></div>
+          <div class="p-stat-info">
+            <div class="p-stat-lbl">Smjena tim lider</div>
+            <div class="p-stat-sub">Adnan Selimović · ☎ pozovi</div>
+          </div>
+          <button onclick="showToast('📞 Pozivam tim lidera...','call')" style="background:var(--bl);color:#fff;border:none;border-radius:10px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:#fff"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PRIJAVI SCREEN ═══ -->
+  <div class="scr" id="s-prijavi">
+    <div class="w-header" style="background:linear-gradient(135deg,#1a7a34,#2e9e4a);">
+      <div class="w-av">📍</div>
+      <div class="w-info">
+        <div class="w-name">Prijavi problem</div>
+        <div class="w-sub" style="color:rgba(255,255,255,.8)">GPS lokacija preuzeta automatski</div>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:14px 16px 90px;">
+      <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid rgba(0,0,0,.06);">
+        <div style="font-size:11px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:11px;">Kategorija problema</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="w-cat-grid"></div>
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid rgba(0,0,0,.06);">
+        <div style="font-size:11px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">📸 Fotografija (opciono)</div>
+        <label style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:90px;border:2px dashed rgba(0,0,0,.15);border-radius:13px;cursor:pointer;gap:6px;" id="w-photo-lbl">
+          <span style="font-size:24px;">📷</span>
+          <span style="font-size:12px;font-weight:600;color:var(--tx3);">Snimi ili odaberi</span>
+          <input type="file" accept="image/*" style="display:none" onchange="wPhotoSelect(this)">
+        </label>
+        <div id="w-photo-preview" style="display:none;margin-top:8px;">
+          <img id="w-photo-img" style="width:100%;border-radius:12px;max-height:120px;object-fit:cover;">
+          <div style="font-size:11px;color:var(--g);font-weight:600;margin-top:5px;text-align:center;">✅ Fotografija dodana</div>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid rgba(0,0,0,.06);">
+        <div style="font-size:11px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Kratki opis (opciono)</div>
+        <textarea id="w-note" style="width:100%;background:var(--bg);border:1.5px solid transparent;border-radius:11px;padding:11px 13px;font-size:14px;font-family:var(--fn);color:var(--tx);outline:none;resize:none;min-height:70px;line-height:1.5;" placeholder='npr. "velika rupa ispred broja 12"...'></textarea>
+      </div>
+      <div style="background:#fffbf5;border:1px solid #ffd9a8;border-radius:13px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:9px;">
+        <span style="font-size:16px;">📍</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#7a4500;">GPS lokacija</div>
+          <div style="font-size:11px;color:#a05c1a;">43.8563° N, 18.4131° E · Ferhadija, Centar</div>
+        </div>
+      </div>
+      <button class="big-action ba-green" id="w-send-btn" onclick="wSendReport()" disabled style="opacity:.5">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        Pošalji prijavu
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ BOTTOM NAV ═══ -->
+  <div class="bnav">
+    <button class="nbtn on" onclick="goScr('s-main',this)">
+      <div class="nbw">
+        <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+        <div class="nbadge" id="nbadge">0</div>
+      </div>
+      <span class="nl">Zadaci</span>
+    </button>
+    <button class="nbtn" onclick="goScr('s-prijavi',this)" style="position:relative;">
+      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--g),#2e9e4a);display:flex;align-items:center;justify-content:center;margin-top:-18px;box-shadow:0 4px 14px rgba(28,122,53,.45);">
+        <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:#fff"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      </div>
+      <span class="nl" style="margin-top:3px">Prijavi</span>
+    </button>
+    <button class="nbtn" onclick="goScr('s-hist',this)">
+      <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8z"/></svg>
+      <span class="nl">Historija</span>
+    </button>
+    <button class="nbtn" onclick="goScr('s-prof',this)">
+      <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      <span class="nl">Profil</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// ══ TASK DATA ══
+const CATS={
+  putevi:{name:'Rupa / oštećenje',color:'#ff9500',bg:'#fff8ec',icon:'<path d="M17 3h-2V1h-2v2h-2V1H9v2H7V1H5v2H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-2V1h-2v2zm2 16H5V7h14v12z"/>'},
+};
+
+// 0=primljeno, 1=na putu, 2=na lokaciji, 3=u radu, 4=završeno
+const STATUS=['Primljeno','Na putu','Na lokaciji','U radu','Završeno'];
+const STATUS_PILL=['st-new','st-route','st-onsite','st-progress','st-done'];
+
+let TASKS=[
+  {id:101,catId:'putevi',title:'Rupa na putu',addr:'Ferhadija 12, Centar',gps:'43.8563° N, 18.4131° E',dist:'1.2 km',priority:'urgent',status:0,received:Date.now()-15*60000,note:'Velika rupa preko cijele trake, opasno za vozila. Hitno!',citizenName:'Ana P.',votes:28,photoCitizen:null,photoBefore:null,photoAfter:null,cost:null,workNote:''},
+  {id:102,catId:'putevi',title:'Oštećen ivičnjak',addr:'Zmaj od Bosne 44, Novo Sarajevo',gps:'43.8487° N, 18.3856° E',dist:'3.4 km',priority:'med',status:0,received:Date.now()-45*60000,note:'Ivičnjak izlomljen, pješaci moraju u trafik.',citizenName:'Mirza H.',votes:19,photoCitizen:null,photoBefore:null,photoAfter:null,cost:null,workNote:''},
+  {id:103,catId:'putevi',title:'Pukotina u asfaltu',addr:'Bul. Meše Selimovića, Novi Grad',gps:'43.8521° N, 18.3712° E',dist:'5.1 km',priority:'low',status:0,received:Date.now()-2*3600000,note:'',citizenName:'Selma B.',votes:7,photoCitizen:null,photoBefore:null,photoAfter:null,cost:null,workNote:''},
+];
+
+const HISTORY=[
+  {id:91,title:'Rupa na putu',addr:'Koševo 33, Centar',doneAt:Date.now()-2*3600000,cost:185,duration:'2h 14min'},
+  {id:90,title:'Oštećen ivičnjak',addr:'Trg djece Sarajeva, Centar',doneAt:Date.now()-5*3600000,cost:95,duration:'1h 32min'},
+  {id:89,title:'Rupa na putu',addr:'Bul. Meše Selimovića',doneAt:Date.now()-24*3600000,cost:240,duration:'3h 8min'},
+  {id:88,title:'Pukotina u asfaltu',addr:'Titova 8, Centar',doneAt:Date.now()-26*3600000,cost:140,duration:'1h 55min'},
+  {id:87,title:'Rupa na putu',addr:'Obala Kulina bana',doneAt:Date.now()-48*3600000,cost:310,duration:'4h 20min'},
+];
+
+let activeTaskId=null,activePhotoSlot=null,tempPhoto=null,isOnline=true;
+
+// ══ HELPERS ══
+function ago(ms){
+  const m=Math.floor((Date.now()-ms)/60000);
+  if(m<1)return 'sada';
+  if(m<60)return `prije ${m}min`;
+  if(m<1440)return `prije ${Math.floor(m/60)}h`;
+  return `prije ${Math.floor(m/1440)}d`;
+}
+function getTask(id){return TASKS.find(t=>t.id===id);}
+
+// ══ RENDER ══
+function renderAll(){
+  renderTasks();
+  renderHistory();
+  renderStrip();
+}
+
+function renderStrip(){
+  const active=TASKS.filter(t=>t.status>0&&t.status<4).length;
+  const pending=TASKS.filter(t=>t.status===0).length;
+  const done=TASKS.filter(t=>t.status===4).length;
+  document.getElementById('ts-active').textContent=active;
+  document.getElementById('ts-pending').textContent=pending;
+  document.getElementById('ts-done').textContent=done;
+  document.getElementById('ts-km').textContent='12.4';
+  document.getElementById('nbadge').textContent=pending+active;
+}
+
+function renderTasks(){
+  const cat=CATS.putevi;
+  // sort: active in-progress first, then by priority
+  const pri={urgent:3,med:2,low:1};
+  const sorted=[...TASKS].sort((a,b)=>{
+    if(a.status!==b.status){
+      if(a.status>0&&a.status<4) return -1;
+      if(b.status>0&&b.status<4) return 1;
+    }
+    return pri[b.priority]-pri[a.priority];
+  });
+
+  document.getElementById('tasks').innerHTML=sorted.map(t=>{
+    const isActive=t.status>0&&t.status<4;
+    const isDone=t.status===4;
+    const progressW=(t.status/4)*100;
+
+    let actionHTML='';
+    if(t.status===0){
+      actionHTML=`<div class="tc-action"><button class="tc-btn tcb-primary" onclick="acceptTask(${t.id})"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Prihvati zadatak</button></div>`;
+    } else if(t.status===1){
+      actionHTML=`<div class="tc-action"><button class="tc-btn tcb-primary" onclick="arriveTask(${t.id})"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>Stigao sam</button></div>`;
+    } else if(t.status===2){
+      actionHTML=`<div class="tc-action"><button class="tc-btn tcb-primary" onclick="startWork(${t.id})"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Započni rad</button></div>`;
+    } else if(t.status===3){
+      actionHTML=`<div class="tc-action"><button class="tc-btn tcb-success" onclick="openComplete(${t.id})"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Završi (sa foto)</button></div>`;
+    }
+
+    return `<div class="tcard ${isActive?'active':''} ${t.priority==='urgent'?'urgent':''}" onclick="openDetail(${t.id})">
+      <div class="tc-top">
+        <div class="tc-icon" style="background:${cat.bg}"><svg viewBox="0 0 24 24" style="fill:${cat.color}">${cat.icon}</svg></div>
+        <div class="tc-body">
+          <div class="tc-title-row">
+            <span class="tc-title">${t.title}</span>
+            ${t.priority==='urgent'?'<span class="tc-priority pri-urgent">Hitno</span>':''}
+            ${t.priority==='med'?'<span class="tc-priority pri-med">Srednje</span>':''}
+          </div>
+          <div class="tc-addr"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>${t.addr}</div>
+          <div class="tc-meta">
+            <div class="tc-meta-item"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm.01 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>${ago(t.received)}</div>
+            <div class="tc-meta-item"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg>${t.dist}</div>
+            <div class="tc-meta-item">▲ ${t.votes}</div>
+          </div>
+        </div>
+      </div>
+      ${isActive?`<div class="timeline">
+        <div class="tl-progress" style="width:${progressW>0?'calc('+(t.status*25)+'% + '+(t.status*8)+'px - 32px)':'0px'}"></div>
+        ${[0,1,2,3,4].map(i=>`<div class="tl-step">
+          <div class="tl-dot ${i<t.status?'done':''} ${i===t.status?'active':''}">${i<t.status?'<svg viewBox=\"0 0 24 24\"><path d=\"M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z\"/></svg>':i+1}</div>
+          <div class="tl-lbl ${i<t.status?'done':''} ${i===t.status?'active':''}">${STATUS[i].split(' ')[0]}</div>
+        </div>`).join('')}
+      </div>`:''}
+      ${!isActive&&!isDone?`<div class="tc-status-bar"><span class="status-pill ${STATUS_PILL[t.status]}">${STATUS[t.status]}</span></div>`:''}
+      ${actionHTML}
+    </div>`;
+  }).join('');
+}
+
+function renderHistory(){
+  document.getElementById('hlist').innerHTML=HISTORY.map(h=>`
+    <div class="tcard">
+      <div class="tc-top">
+        <div class="tc-icon" style="background:var(--gl)"><svg viewBox="0 0 24 24" style="fill:var(--g)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+        <div class="tc-body">
+          <div class="tc-title">${h.title}</div>
+          <div class="tc-addr"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>${h.addr}</div>
+          <div class="tc-meta">
+            <div class="tc-meta-item">${ago(h.doneAt)}</div>
+            <div class="tc-meta-item">⏱ ${h.duration}</div>
+            <div class="tc-meta-item" style="color:var(--g);font-weight:600;">${h.cost} KM</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══ DETAIL ══
+function openDetail(id){
+  const t=getTask(id);
+  if(!t)return;
+  activeTaskId=id;
+  const cat=CATS.putevi;
+  document.getElementById('det-content').innerHTML=`
+    <div class="det-hero">
+      <div class="det-icon" style="background:${cat.bg}"><svg viewBox="0 0 24 24" style="fill:${cat.color}">${cat.icon}</svg></div>
+      <div class="det-info">
+        <div class="det-h">${t.title}</div>
+        <div class="det-pri-row">
+          ${t.priority==='urgent'?'<span class="tc-priority pri-urgent">Hitno</span>':''}
+          ${t.priority==='med'?'<span class="tc-priority pri-med">Srednje</span>':''}
+          ${t.priority==='low'?'<span class="tc-priority pri-low">Nisko</span>':''}
+          <span class="status-pill ${STATUS_PILL[t.status]}">${STATUS[t.status]}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="det-section">
+      <div class="det-label">Lokacija</div>
+      <div class="addr-card">
+        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+        <div style="flex:1">
+          <div class="addr-card-text">${t.addr}</div>
+          <div class="addr-card-dist">${t.dist} · ${t.gps}</div>
+        </div>
+        <button class="nav-btn" onclick="showToast('🗺 Otvaram navigaciju...','nav')">
+          <svg viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.38.39-1.01 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
+          Navigacija
+        </button>
+      </div>
+    </div>
+
+    ${t.recurOf?`<div class="det-section">
+      <div class="det-label">Ponovljeni kvar</div>
+      <div style="background:#fff4f4;border:1.5px solid #ffd0d0;border-radius:14px;padding:13px 14px;">
+        <div style="font-size:13.5px;font-weight:700;color:#c0392b;margin-bottom:5px;">Ovaj kvar je već bio popravljen</div>
+        <div style="font-size:12.5px;color:var(--tx2);line-height:1.5;">
+          Isti tip kvara je na ovoj lokaciji označen riješenim, a vratio se nakon <b>${t.recurDays} dana</b>.
+          Provjeri na terenu je li stvarno isti kvar — tvoja potvrda ide gradu.
+        </div>
+        ${t.recurConfirmed===null?`<div style="display:flex;gap:8px;margin-top:11px;">
+          <button onclick="confirmRecur(${t.id},true)" style="flex:1;padding:11px;border:none;border-radius:11px;background:#c0392b;color:#fff;font-size:13px;font-weight:700;font-family:var(--fn);cursor:pointer;">Da — isti kvar se vratio</button>
+          <button onclick="confirmRecur(${t.id},false)" style="flex:1;padding:11px;border:1.5px solid var(--sep);border-radius:11px;background:var(--card);color:var(--tx2);font-size:13px;font-weight:600;font-family:var(--fn);cursor:pointer;">Ne — drugi kvar</button>
+        </div>`:`<div style="margin-top:10px;font-size:12.5px;font-weight:700;color:${t.recurConfirmed?'#c0392b':'var(--g)'};">
+          ${t.recurConfirmed?'Potvrdio si: popravka nije izdržala.':'Potvrdio si: nije isti kvar.'}
+        </div>`}
+      </div>
+    </div>`:''}
+
+    <div class="det-section">
+      <div class="det-label">Detalji prijave</div>
+      <div class="info-grid">
+        <div class="info-cell"><div class="info-cell-lbl">Prijavio</div><div class="info-cell-val">${t.citizenName}</div></div>
+        <div class="info-cell"><div class="info-cell-lbl">Glasovi građana</div><div class="info-cell-val">▲ ${t.votes}</div></div>
+        <div class="info-cell"><div class="info-cell-lbl">Stiglo</div><div class="info-cell-val" style="font-size:13px">${ago(t.received)}</div></div>
+        <div class="info-cell"><div class="info-cell-lbl">SLA rok</div><div class="info-cell-val" style="color:${t.priority==='urgent'?'var(--r)':'var(--g)'};font-size:13px">${t.priority==='urgent'?'4h':'72h'}</div></div>
+      </div>
+    </div>
+
+    ${t.note?`<div class="det-section">
+      <div class="det-label">Napomena građanina</div>
+      <div class="note-box">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        <div>"${t.note}"</div>
+      </div>
+    </div>`:''}
+
+    <div class="det-section">
+      <div class="det-label">Foto od građanina</div>
+      <div class="citizen-photo">📷 Fotografija lokacije (građanin)</div>
+    </div>
+
+    ${t.status===0?`<button class="big-action ba-orange" onclick="acceptTask(${t.id});ovClose(null,'det-ov',true);">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      Prihvati zadatak
+    </button>`:''}
+    ${t.status===1?`<button class="big-action ba-orange" onclick="arriveTask(${t.id});ovClose(null,'det-ov',true);">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+      Stigao sam na lokaciju
+    </button>`:''}
+    ${t.status===2?`<button class="big-action ba-orange" onclick="startWork(${t.id});ovClose(null,'det-ov',true);">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      Započni rad
+    </button>`:''}
+    ${t.status===3?`<button class="big-action ba-green" onclick="ovClose(null,'det-ov',true);openComplete(${t.id});">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      Završi zadatak
+    </button>`:''}
+
+    <button class="big-action ba-grey" onclick="ovClose(null,'det-ov',true)">Zatvori</button>
+  `;
+  document.getElementById('det-ov').classList.add('on');
+}
+
+// ══ STATUS PROGRESSION ══
+function acceptTask(id){
+  const t=getTask(id);
+  if(!t)return;
+  t.status=1;
+  renderAll();
+  showToast('✅ Zadatak prihvaćen. Krećeš na lokaciju.','done');
+}
+function arriveTask(id){
+  const t=getTask(id);
+  if(!t)return;
+  // require BEFORE photo
+  activeTaskId=id;
+  activePhotoSlot='before-arrive';
+  openPhotoModal('Foto stanja prije rada','before');
+}
+function startWork(id){
+  const t=getTask(id);
+  if(!t)return;
+  t.status=3;
+  renderAll();
+  showToast('⚒ Rad u toku. Sretno!','done');
+}
+function openComplete(id){
+  activeTaskId=id;
+  const t=getTask(id);
+  if(!t)return;
+  document.getElementById('comp-content').innerHTML=`
+    <div class="det-hero">
+      <div class="det-icon" style="background:var(--gl)"><svg viewBox="0 0 24 24" style="fill:var(--g)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+      <div class="det-info">
+        <div class="det-h">Završi zadatak</div>
+        <div class="addr-card-dist" style="margin-top:5px">${t.addr}</div>
+      </div>
+    </div>
+
+    <div class="det-section">
+      <div class="det-label">📸 Foto dokaz — obavezno</div>
+      <div class="proof-grid">
+        <div class="proof-slot before ${t.photoBefore?'filled':''}" onclick="capturePhoto('before')">
+          ${t.photoBefore?`<img src="${t.photoBefore.url}"><div class="proof-stamp"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>PRIJE</div>`:`
+          <div class="proof-icon">📷</div>
+          <div class="proof-label">Prije</div>
+          <div class="proof-sub">stanja zatečena</div>`}
+        </div>
+        <div class="proof-slot after ${t.photoAfter?'filled':''}" onclick="capturePhoto('after')">
+          ${t.photoAfter?`<img src="${t.photoAfter.url}"><div class="proof-stamp"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>POSLIJE</div>`:`
+          <div class="proof-icon">📷</div>
+          <div class="proof-label">Poslije</div>
+          <div class="proof-sub">rad završen</div>`}
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);line-height:1.4;padding:0 4px;">
+        ⓘ GPS i vrijeme se automatski upisuju u sliku
+      </div>
+    </div>
+
+    <div class="det-section">
+      <div class="det-label">Trošak materijala i rada</div>
+      <div class="cost-row">
+        <input class="cost-input" type="number" placeholder="0" id="cost-input" value="${t.cost||''}">
+        <div class="cost-cur">KM</div>
+      </div>
+    </div>
+
+    <div class="det-section">
+      <div class="det-label">Kratka napomena (opciono)</div>
+      <textarea class="note-input" placeholder="npr. upotrebljen hladni asfalt 25kg..." id="work-note">${t.workNote||''}</textarea>
+    </div>
+
+    <button class="big-action ba-green" id="comp-btn" onclick="submitComplete()" ${(!t.photoBefore||!t.photoAfter)?'disabled style="opacity:.5"':''}>
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      Potvrdi završetak
+    </button>
+    <button class="big-action ba-grey" onclick="ovClose(null,'comp-ov',true)">Otkaži</button>
+  `;
+  document.getElementById('comp-ov').classList.add('on');
+}
+
+function capturePhoto(slot){
+  activePhotoSlot=slot;
+  openPhotoModal(slot==='before'?'Foto stanja prije rada':'Foto stanja poslije rada',slot);
+}
+
+function openPhotoModal(title,slot){
+  document.getElementById('pm-title').textContent=title;
+  document.getElementById('pm-empty').style.display='flex';
+  document.getElementById('pm-preview').style.display='none';
+  document.getElementById('pm-stamps').style.display='none';
+  document.getElementById('pm-shutter').style.display='flex';
+  document.getElementById('pm-confirm').classList.remove('on');
+  tempPhoto=null;
+  const now=new Date();
+  document.getElementById('pm-time').textContent=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  document.getElementById('ph-modal').classList.add('on');
+}
+function closePhotoModal(){
+  document.getElementById('ph-modal').classList.remove('on');
+}
+function onPhotoCapture(inp){
+  const f=inp.files[0];
+  if(!f)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    tempPhoto={url:e.target.result,ts:Date.now(),gps:'43.8563° N, 18.4131° E'};
+    document.getElementById('pm-preview').src=tempPhoto.url;
+    document.getElementById('pm-empty').style.display='none';
+    document.getElementById('pm-preview').style.display='block';
+    document.getElementById('pm-stamps').style.display='flex';
+    document.getElementById('pm-shutter').style.display='none';
+    document.getElementById('pm-confirm').classList.add('on');
+  };
+  reader.readAsDataURL(f);
+}
+function confirmPhoto(){
+  if(!tempPhoto)return;
+  const t=getTask(activeTaskId);
+  if(!t)return;
+  if(activePhotoSlot==='before-arrive'){
+    t.photoBefore=tempPhoto;
+    t.status=2;
+    closePhotoModal();
+    renderAll();
+    showToast('📸 Stigao si na lokaciju. Klikni "Započni rad".','done');
+  } else if(activePhotoSlot==='before'){
+    t.photoBefore=tempPhoto;
+    closePhotoModal();
+    openComplete(activeTaskId);
+  } else if(activePhotoSlot==='after'){
+    t.photoAfter=tempPhoto;
+    closePhotoModal();
+    openComplete(activeTaskId);
+  }
+}
+
+function submitComplete(){
+  const t=getTask(activeTaskId);
+  if(!t)return;
+  if(!t.photoBefore||!t.photoAfter){
+    showToast('⚠ Obje fotografije su obavezne','err');
+    return;
+  }
+  const cost=parseFloat(document.getElementById('cost-input').value)||0;
+  const note=document.getElementById('work-note').value.trim();
+  t.cost=cost;
+  t.workNote=note;
+  t.status=4;
+  document.getElementById('comp-ov').classList.remove('on');
+  // success overlay
+  document.getElementById('suc-content').innerHTML=`
+    <div class="suc-icon-box">
+      <div class="suc-ring"></div>
+      <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+    </div>
+    <div class="suc-title">Zadatak završen!</div>
+    <div class="suc-sub">Foto dokaz i podaci su poslani dispečeru.<br>Građanin će dobiti notifikaciju.</div>
+    <div class="suc-summary">
+      <div class="suc-summary-row"><span>Zadatak</span><span>${t.title}</span></div>
+      <div class="suc-summary-row"><span>Lokacija</span><span style="text-align:right;max-width:60%">${t.addr}</span></div>
+      <div class="suc-summary-row"><span>Trošak</span><span>${cost} KM</span></div>
+      <div class="suc-summary-row"><span>Trajanje rada</span><span>1h 24min</span></div>
+    </div>
+    <button class="big-action ba-green" onclick="closeSuc()">U redu</button>
+  `;
+  document.getElementById('suc-ov').classList.add('on');
+}
+function closeSuc(){
+  document.getElementById('suc-ov').classList.remove('on');
+  // remove completed task from active list (move to history)
+  const t=getTask(activeTaskId);
+  if(t){
+    HISTORY.unshift({id:t.id,title:t.title,addr:t.addr,doneAt:Date.now(),cost:t.cost||0,duration:'1h 24min'});
+    TASKS=TASKS.filter(x=>x.id!==activeTaskId);
+  }
+  renderAll();
+}
+
+// ══ NAV ══
+function goScr(name,btn){
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  document.getElementById(name).classList.add('on');
+  document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function ovClose(e,id,force){
+  if(force||(e&&e.target===document.getElementById(id))){
+    document.getElementById(id).classList.remove('on');
+  }
+}
+
+let toastTimer;
+function showToast(msg,kind){
+  const t=document.getElementById('toast');
+  let color='rgba(28,122,53,.97)';
+  let icon='<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+  if(kind==='err'){color='rgba(255,59,48,.97)';icon='<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>';}
+  else if(kind==='nav'){color='rgba(26,122,52,.97)';icon='<svg viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.38.39-1.01 0-1.41z"/></svg>';}
+  else if(kind==='call'){color='rgba(0,122,255,.97)';}
+  t.style.background=color;
+  t.innerHTML=icon+'<span>'+msg+'</span>';
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('on'),3500);
+}
+
+// ══ WORKER REPORT ══
+const REPORT_CATS=[
+  {id:'putevi',name:'Rupa / oštećenje',color:'#ff9500',bg:'#fff8ec',icon:'🚧'},
+  {id:'rasveta',name:'Nema rasvjete',color:'#e24b4a',bg:'#fcebeb',icon:'💡'},
+  {id:'voda',name:'Curenje / cijev',color:'#007aff',bg:'#f0f6ff',icon:'💧'},
+  {id:'otpad',name:'Otpad / smeće',color:'#34c759',bg:'#f0faf3',icon:'🗑️'},
+  {id:'poplava',name:'Poplava / kanal',color:'#34aadc',bg:'#edf8fd',icon:'🌊'},
+  {id:'staklo',name:'Staklo / opasnost',color:'#ff2d55',bg:'#fff0f3',icon:'⚠️'},
+  {id:'predmet',name:'Predmet na putu',color:'#5856d6',bg:'#f2f2fb',icon:'🚛'},
+  {id:'ostalo',name:'Ostalo',color:'#8e8e93',bg:'#f5f5f7',icon:'❓'},
+];
+let selReportCat=null;
+
+function initReportCats(){
+  const grid=document.getElementById('w-cat-grid');
+  if(!grid)return;
+  grid.innerHTML=REPORT_CATS.map(c=>`
+    <div onclick="selectReportCat('${c.id}',this)" style="background:${c.bg};border:2px solid transparent;border-radius:12px;padding:11px 10px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:8px;" data-cat="${c.id}">
+      <span style="font-size:20px">${c.icon}</span>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:${c.color}">${c.name}</div>
+      </div>
+    </div>`).join('');
+}
+function selectReportCat(id,el){
+  selReportCat=id;
+  document.querySelectorAll('#w-cat-grid > div').forEach(d=>{
+    d.style.borderColor='transparent';
+    d.style.transform='scale(1)';
+  });
+  el.style.borderColor=REPORT_CATS.find(c=>c.id===id).color;
+  el.style.transform='scale(.97)';
+  const btn=document.getElementById('w-send-btn');
+  btn.disabled=false;btn.style.opacity='1';
+}
+function wPhotoSelect(inp){
+  if(!inp.files[0])return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    document.getElementById('w-photo-img').src=e.target.result;
+    document.getElementById('w-photo-preview').style.display='block';
+    document.getElementById('w-photo-lbl').style.display='none';
+  };
+  reader.readAsDataURL(inp.files[0]);
+}
+function wSendReport(){
+  if(!selReportCat)return;
+  const cat=REPORT_CATS.find(c=>c.id===selReportCat);
+  const note=document.getElementById('w-note').value.trim();
+  showToast(`✅ Prijava poslana — ${cat.name}`,'done');
+  // reset
+  selReportCat=null;
+  document.getElementById('w-note').value='';
+  document.getElementById('w-photo-preview').style.display='none';
+  document.getElementById('w-photo-lbl').style.display='flex';
+  document.querySelectorAll('#w-cat-grid > div').forEach(d=>d.style.borderColor='transparent');
+  const btn=document.getElementById('w-send-btn');
+  btn.disabled=true;btn.style.opacity='.5';
+  goScr('s-main',document.querySelector('.nbtn'));
+}
+
+// ══ CLOCK ══
+(function tick(){
+  const n=new Date();
+  document.getElementById('clk').textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
+  setTimeout(tick,10000);
+})();
+
+// occasional offline simulation
+setInterval(()=>{
+  if(!window.__PINIT_ONLINE&&Math.random()<0.03){
+    isOnline=!isOnline;
+    document.getElementById('offbanner').classList.toggle('on',!isOnline);
+    if(isOnline) showToast('✅ Sinkronizovano','done');
+  }
+},20000);
+
+renderAll();
+initReportCats();
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   ONLINE MOD — PINIT server: pravi zadaci, statusi, GPS, prijave.
+   Otvoren kao fajl (file://) → ostaje demo za prezentacije.
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+// iOS pinch zum blokada (double-tap gasi touch-action:manipulation u CSS-u)
+['gesturestart','gesturechange','gestureend'].forEach(function(ev){document.addEventListener(ev,function(e){e.preventDefault();},{passive:false});});
+const SRV=(location.protocol==='http:'||location.protocol==='https:')?location.origin:'';
+if(!SRV)return;
+window.__PINIT_ONLINE=true;            // gasi lažnu offline simulaciju
+const CATN={rasveta:'Rasvjeta ne radi',putevi:'Rupa / oštećenje puta',voda:'Curenje / cijev',predmet:'Predmet na putu',staklo:'Staklo / opasnost',otpad:'Otpad / smeće',poplava:'Poplava / kanal',ostalo:'Ostalo'};
+let ME=null;try{ME=JSON.parse(localStorage.getItem('pinit_radnik'));}catch(e){}
+let WST={};try{WST=JSON.parse(localStorage.getItem('pinit_wst'))||{};}catch(e){}  // granularni status po zadatku (0-4)
+function saveWst(){try{localStorage.setItem('pinit_wst',JSON.stringify(WST));}catch(e){}}
+let myGPS=null,lastLocSend=0,kmToday=0,lastFix=null,lastSig='';
+
+function hav(a,b){const R=6371,dLa=(b.lat-a.lat)*Math.PI/180,dLo=(b.lng-a.lng)*Math.PI/180;
+  const x=Math.sin(dLa/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLo/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+
+/* ── očisti demo ODMAH ── */
+TASKS.length=0;HISTORY.length=0;renderAll();
+
+/* ── prijava radnika ── */
+function showLogin(){
+  const old=document.getElementById('wLogin');if(old)old.remove();
+  fetch(SRV+'/api/workers').then(r=>r.json()).then(ws=>{
+    const ov=document.createElement('div');ov.id='wLogin';
+    ov.style.cssText='position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#0e4d24,#1a7a34);display:flex;align-items:center;justify-content:center;padding:22px;';
+    ov.innerHTML=ws.length?`<div style="background:#fff;border-radius:22px;padding:26px 22px;max-width:340px;width:100%;font-family:inherit;">
+        <div style="font-size:24px;font-weight:800;">👷 PINIT Radnik</div>
+        <div style="font-size:13px;color:#6e6e73;margin:6px 0 16px;line-height:1.5;">Odaberi svoje ime — vidjećeš svoje zadatke, a dispečer tvoju lokaciju dok radiš.</div>
+        <select id="wSel" style="width:100%;padding:13px;border:1px solid #e2e2e6;border-radius:12px;font-size:15px;font-family:inherit;background:#f7f7f9;">
+          ${ws.map(w=>`<option value="${w.id}">${w.name} · ${w.role} (${w.dept})</option>`).join('')}</select>
+        <button id="wGo" style="width:100%;margin-top:14px;padding:14px;border:none;border-radius:14px;background:#1a7a34;color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;">Prijavi se →</button>
+      </div>`
+      :`<div style="background:#fff;border-radius:22px;padding:30px 24px;max-width:340px;text-align:center;font-family:inherit;color:#3c3c43;font-size:14px;line-height:1.6;">
+        <div style="font-size:34px;">👷</div><b>Još nema registrovanih radnika.</b><br>Dispečer te prvo treba dodati u Platformi (Radnici uživo → ➕ Dodaj radnika).<br><span style="font-size:12px;color:#8e8e93;">Provjeravam ponovo automatski…</span></div>`;
+    document.body.appendChild(ov);
+    if(ws.length){
+      window._ws=ws;
+      document.getElementById('wGo').onclick=()=>{
+        const w=ws.find(x=>x.id===document.getElementById('wSel').value);
+        ME={id:w.id,name:w.name,role:w.role,dept:w.dept,city:w.city||''};
+        try{localStorage.setItem('pinit_radnik',JSON.stringify(ME));}catch(e){}
+        ov.remove();boot();
+      };
+    }else setTimeout(showLogin,8000);
+  }).catch(()=>setTimeout(showLogin,5000));
+}
+
+/* ── mapiranje server prijave → format ove aplikacije ── */
+function mapT(r){
+  const local=WST[r.id]!=null?WST[r.id]:(r.status>=2?1:0);   // server "u toku" → bar prihvaćeno
+  const gpsTxt=r.lat!=null?(r.lat.toFixed(5)+', '+r.lng.toFixed(5)):'bez lokacije';
+  const dist=(r.lat!=null&&myGPS)?hav(myGPS,{lat:r.lat,lng:r.lng}).toFixed(1)+' km':'—';
+  const pri=(r.pri==='urgent'||r.votes>=25)?'urgent':(r.pri==='med'||r.votes>=10)?'med':'low';
+  return {id:r.id,catId:r.cat,title:CATN[r.cat]||r.cat,addr:gpsTxt,gps:gpsTxt,_lat:r.lat,_lng:r.lng,
+    dist,priority:pri,status:Math.min(local,3),received:r.ts,note:r.note||'',
+    citizenName:r.name||'građanin',votes:r.votes||0,
+    recurOf:r.recurOf||null,recurDays:r.recurDays||null,recurConfirmed:(r.recurConfirmed==null?null:r.recurConfirmed),
+    photoCitizen:r.photo?{url:r.photo}:null,photoBefore:null,photoAfter:null,cost:r.cost,workNote:''};
+}
+
+function pull(){
+  if(!ME)return;
+  fetch(SRV+'/api/reports').then(r=>r.json()).then(list=>{
+    const mine=list.filter(r=>r.worker===ME.id);
+    const sig=JSON.stringify(mine.map(r=>[r.id,r.status]));
+    const isNew=lastSig!==''&&mine.filter(r=>r.status<3).length>TASKS.length;
+    if(sig===lastSig)return;lastSig=sig;
+    const keep={};TASKS.forEach(t=>{keep[t.id]=t;});   // sačuvaj lokalne fotke prije/poslije
+    TASKS.length=0;
+    mine.filter(r=>r.status<3).sort((a,b)=>b.ts-a.ts).forEach(r=>{
+      const t=mapT(r);
+      if(keep[r.id]){t.photoBefore=keep[r.id].photoBefore;t.photoAfter=keep[r.id].photoAfter;t.status=keep[r.id].status;}
+      TASKS.push(t);
+    });
+    HISTORY.length=0;
+    mine.filter(r=>r.status===3).sort((a,b)=>(b.resolvedAt||0)-(a.resolvedAt||0)).forEach(r=>{
+      HISTORY.push({id:r.id,title:CATN[r.cat]||r.cat,addr:r.lat!=null?r.lat.toFixed(4)+', '+r.lng.toFixed(4):'bez lokacije',
+        doneAt:r.resolvedAt||r.ts,cost:r.cost||0,duration:'—'});
+    });
+    renderAll();
+    if(isNew){showToast('🔔 Novi zadatak ti je dodijeljen!','done');if(navigator.vibrate)navigator.vibrate([100,60,100]);}
+  }).catch(()=>{});
+}
+
+/* ── akcije → server ── */
+const _accept=window.acceptTask;
+window.acceptTask=function(id){_accept(id);WST[id]=1;saveWst();
+  fetch(SRV+'/api/reports/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:2})}).catch(()=>{});};
+const _arrive=window.arriveTask;
+window.arriveTask=function(id){_arrive(id);WST[id]=2;saveWst();};
+const _startW=window.startWork;
+window.startWork=function(id){_startW(id);WST[id]=3;saveWst();};
+const _submitC=window.submitComplete;
+window.submitComplete=function(){
+  const t=getTask(activeTaskId);if(!t)return;
+  _submitC();
+  if(t.status===4){ // prošla validacija fotki
+    WST[t.id]=4;saveWst();
+    const body={status:3,cost:t.cost||0};
+    if(t.photoBefore&&t.photoBefore.url)body.photoBefore=t.photoBefore.url;
+    if(t.photoAfter&&t.photoAfter.url)body.photoAfter=t.photoAfter.url;
+    fetch(SRV+'/api/reports/'+t.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(()=>{showToast('📨 Poslano — dispečer i građanin vide „Riješeno"','done');lastSig='';pull();})
+      .catch(()=>showToast('⚠ Nema mreže — pokušaću ponovo','err'));
+  }
+};
+
+/* ── radnik potvrđuje da se kvar stvarno vratio ── */
+window.confirmRecur=function(id,yes){
+  fetch(SRV+'/api/reports/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({recurConfirmed:!!yes})})
+    .then(function(r){if(!r.ok)throw 0;
+      showToast(yes?'Potvrđeno — grad vidi da popravka nije izdržala':'Zabilježeno — nije isti kvar','done');
+      lastSig='';pull();
+      var t=getTask(id);if(t)t.recurConfirmed=!!yes;
+      if(typeof openTask==='function'&&activeTaskId===id)setTimeout(function(){openTask(id);},350);
+    })
+    .catch(function(){showToast('⚠ Nema mreže — pokušaj ponovo','err');});
+};
+
+/* ── prijava problema od strane radnika → server ── */
+const _wSend=window.wSendReport;
+window.wSendReport=function(){
+  if(!selReportCat)return;
+  const cat=REPORT_CATS.find(c=>c.id===selReportCat);
+  const note=document.getElementById('w-note').value.trim();
+  const img=document.getElementById('w-photo-img');
+  const photo=(img&&img.src&&img.src.startsWith('data:'))?img.src:null;
+  fetch(SRV+'/api/reports',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    name:(ME?ME.name:'radnik')+' (radnik)',city:ME?ME.city:'',cat:cat.id,note,photo,
+    lat:myGPS?myGPS.lat:null,lng:myGPS?myGPS.lng:null,acc:myGPS?Math.round(myGPS.acc||0):null,ts:Date.now()})})
+    .then(r=>{if(!r.ok)throw 0;showToast('📨 Prijava stigla dispečeru — '+cat.name,'done');})
+    .catch(()=>showToast('⚠ Nema mreže — prijava nije poslana','err'));
+  _wSend();
+};
+
+/* ── GPS: dijeli poziciju + km danas + udaljenost do zadatka ── */
+function startGps(){
+  if(!navigator.geolocation)return;
+  navigator.geolocation.watchPosition(pp=>{
+    const fix={lat:pp.coords.latitude,lng:pp.coords.longitude,acc:pp.coords.accuracy};
+    if(lastFix){const d=hav(lastFix,fix);if(d<0.5)kmToday+=d;}   // ignoriši GPS skokove >500m
+    lastFix=fix;myGPS=fix;
+    const el=document.getElementById('ts-km');if(el)el.textContent=kmToday.toFixed(1);
+    TASKS.forEach(t=>{if(t._lat!=null)t.dist=hav(myGPS,{lat:t._lat,lng:t._lng}).toFixed(1)+' km';});
+    const now=Date.now();
+    if(ME&&now-lastLocSend>15000){lastLocSend=now;
+      fetch(SRV+'/api/workers/'+ME.id+'/loc',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({lat:fix.lat,lng:fix.lng})}).catch(()=>{});}
+  },()=>{},{enableHighAccuracy:true,maximumAge:10000});
+}
+
+/* ── zaglavlje i profil sa stvarnim imenom ── */
+function applyIdentity(){
+  const ini=ME.name.trim().split(/\s+/).map(s=>s[0]||'').join('').slice(0,2).toUpperCase();
+  document.querySelectorAll('.w-av,.p-av-big').forEach(e=>e.textContent=ini);
+  document.querySelectorAll('.w-name,.p-name-big').forEach(e=>e.textContent=ME.name);
+  const sub=document.querySelector('.w-sub');if(sub)sub.innerHTML='<span class="w-dot"></span>'+ME.role+' · '+(ME.dept||'');
+  const sh=document.querySelector('.w-shift');if(sh){const d=new Date();sh.textContent=d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear()+'.';}
+}
+
+function boot(){applyIdentity();lastSig='';pull();startGps();}
+if(ME)boot();else showLogin();
+setInterval(pull,10000);
+})();
+</script>
+</body>
+</html>
